@@ -2,7 +2,17 @@ const jwt = require('jsonwebtoken');
 const { jwtSecret } = require('../config/auth');
 
 function authMiddleware(req, res, next) {
-  const token = req.cookies && req.cookies.token;
+  // Try cookie first
+  let token = req.cookies && req.cookies.token;
+
+  // If no cookie, try Authorization header
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    }
+  }
+
   if (!token) {
     return res.status(401).json({ error: 'Authentication required' });
   }
