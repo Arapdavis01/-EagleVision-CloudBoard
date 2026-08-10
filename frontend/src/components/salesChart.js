@@ -1,14 +1,26 @@
-export function renderSalesChart(containerId, salesData) {
-  // salesData = [{month: '2025-01', total: 500}, ...]
-  const ctx = document.getElementById(containerId).getContext('2d');
-  new Chart(ctx, {
+let chartInstance = null;
+
+export function renderSalesChart(canvasId, chartData) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  
+  // Destroy previous chart if exists
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: salesData.map(d => d.month),
+      labels: chartData.map(d => d.month),
       datasets: [{
-        label: 'Monthly Revenue',
-        data: salesData.map(d => d.total),
+        label: 'Monthly Revenue ($)',
+        data: chartData.map(d => d.total),
+        backgroundColor: '#3b82f6'
       }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true }
+      }
     }
   });
 }
