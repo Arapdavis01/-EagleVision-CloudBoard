@@ -1,30 +1,191 @@
-:root {
-  --bg: #f4f6f9;
-  --sidebar-bg: #1e293b;
-  --primary: #3b82f6;
-  --text: #1e293b;
-  --card-bg: #ffffff;
-  --border: #e2e8f0;
-}
-
+/* ====== Reset & Variables ====== */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+:root {
+  --bg: #f0f2f5;
+  --sidebar-bg: #1e293b;
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --text: #1e293b;
+  --text-light: #64748b;
+  --card-bg: #ffffff;
+  --border: #e2e8f0;
+  --error: #ef4444;
+  --success: #10b981;
+  --radius: 0.5rem;
+  --shadow: 0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1);
+}
+
 body {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.hidden { display: none !important; }
+
+/* ====== Login Page ====== */
+.login-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  padding: 1rem;
+}
+
+.login-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow), 0 10px 25px rgba(0,0,0,0.15);
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 420px;
+  animation: fadeInUp 0.4s ease;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-logo .logo-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.login-logo h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.login-logo .tagline {
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
+/* Form groups */
+.form-group {
+  margin-bottom: 1.2rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-weight: 600;
+  font-size: 0.9rem;
   color: var(--text);
 }
 
+.form-group input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+
+/* Password group with toggle */
+.password-group {
+  position: relative;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-light);
+  padding: 4px;
+  line-height: 1;
+}
+
+.toggle-password:hover {
+  color: var(--text);
+}
+
+/* Error message */
+.error-message {
+  color: var(--error);
+  font-size: 0.9rem;
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+  min-height: 1.2em;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.2rem;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* Spinner */
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ====== Dashboard / Main Layout ====== */
 #app {
   display: flex;
   min-height: 100vh;
 }
 
-/* Layout */
+/* Sidebar (from sidebar component) */
 .sidebar {
   width: 250px;
   background: var(--sidebar-bg);
@@ -37,55 +198,161 @@ body {
 
 .sidebar h1 {
   font-size: 1.3rem;
-  font-weight: bold;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .sidebar a {
   color: #cbd5e1;
   text-decoration: none;
   padding: 0.5rem;
-  border-radius: 0.25rem;
+  border-radius: var(--radius);
 }
 
-.sidebar a:hover,
-.sidebar a.active {
+.sidebar a.active,
+.sidebar a:hover {
   background: rgba(255,255,255,0.1);
   color: white;
 }
 
+.logout-btn {
+  margin-top: auto;
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.logout-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+/* Main content area */
 .main-content {
   flex: 1;
   padding: 2rem;
+  background: var(--bg);
+  min-height: 100vh;
 }
 
-/* Buttons */
-.btn {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 0.25rem;
-  cursor: pointer;
-}
-
-.btn:hover {
-  opacity: 0.9;
-}
-
-/* Grid & list toggles */
-.view-toggle {
-  margin-bottom: 1rem;
-}
-
-/* KPI cards etc. */
+/* KPI cards */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   margin-bottom: 2rem;
 }
+
+.kpi-card {
+  background: var(--card-bg);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.kpi-card h3 {
+  font-size: 0.9rem;
+  color: var(--text-light);
+  margin-bottom: 0.5rem;
+}
+
+.kpi-card .value {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+/* Project cards */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.project-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.project-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.3rem;
+}
+
+.status {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status.live { background: #dcfce7; color: #166534; }
+.status.planning { background: #f1f5f9; color: #475569; }
+.status.development { background: #dbeafe; color: #1e40af; }
+.status.maintenance { background: #fef9c3; color: #854d0e; }
+.status.archived { background: #f3f4f6; color: #6b7280; }
+
+.actions {
+  margin-top: 0.8rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.toolbar input {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.view-toggle {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.view-toggle .btn {
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.view-toggle .btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+th, td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+/* Toast notifications */
 .toast {
   position: fixed;
   bottom: 20px;
@@ -93,13 +360,59 @@ body {
   background: #333;
   color: white;
   padding: 1rem 1.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius);
   z-index: 9999;
   animation: fadeIn 0.3s;
+  box-shadow: var(--shadow);
 }
-.toast.success { background: #10b981; }
-.toast.error { background: #ef4444; }
+
+.toast.success { background: var(--success); }
+.toast.error { background: var(--error); }
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: var(--radius);
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+/* Form inside modal */
+.modal-content label {
+  display: block;
+  margin-bottom: 0.8rem;
+  font-weight: 500;
+}
+
+.modal-content input,
+.modal-content select,
+.modal-content textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  margin-top: 0.2rem;
 }
