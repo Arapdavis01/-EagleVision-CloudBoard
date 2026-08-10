@@ -25,19 +25,22 @@ exports.login = async (req, res) => {
       { expiresIn: jwtExpiresIn }
     );
 
+    // Still set the HttpOnly cookie (optional, for future same‑origin use)
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 2 * 60 * 60 * 1000 // 2 hours
+      maxAge: 2 * 60 * 60 * 1000
     });
 
-    // optional audit log
-    await pool.query('INSERT INTO admin_audit_logs (admin_id, action, details) VALUES ($1, $2, $3)',
+    // Audit log
+    await pool.query(
+      'INSERT INTO admin_audit_logs (admin_id, action, details) VALUES ($1, $2, $3)',
       [admin.id, 'LOGIN', `Login at ${new Date().toISOString()}`]
     );
 
-    res.json({ message: 'Login successful', email: admin.email });
+    // 🔥 Return token in the response body
+    res.json({ message: 'Login successful', email: admin.email, token });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -50,6 +53,5 @@ exports.logout = async (req, res) => {
 };
 
 exports.checkSession = (req, res) => {
-  // already passed authMiddleware
   res.json({ authenticated: true, email: req.adminEmail });
 };
