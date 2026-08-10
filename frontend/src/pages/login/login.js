@@ -7,22 +7,27 @@ export async function loginPage() {
   const loginHTML = `
     <div class="login-wrapper">
       <div class="login-card">
-        <div class="login-logo">
-          <i class="fas fa-eye fa-3x"></i>
-          <h1>EagleVision</h1>
-          <p class="tagline">CloudBoard</p>
+        <div class="login-header">
+          <i class="fas fa-user-circle fa-3x"></i>
+          <h1>Welcome Back!</h1>
+          <p class="login-subtitle">Please sign in to continue</p>
         </div>
+
         <form id="login-form">
           <div class="form-group">
             <label for="email">Email</label>
-            <input type="email" id="email" placeholder="admin@example.com" required autofocus>
+            <input type="email" id="email" placeholder="Enter email" required autofocus>
           </div>
           <div class="form-group password-group">
             <label for="password">Password</label>
-            <input type="password" id="password" placeholder="••••••••" required>
+            <input type="password" id="password" placeholder="Enter password" required>
             <button type="button" id="toggle-password" class="toggle-password" aria-label="Show password">
               <i class="fas fa-eye" id="eye-icon"></i>
             </button>
+          </div>
+          <div class="form-group form-check">
+            <input type="checkbox" id="rememberMe" class="form-check-input">
+            <label for="rememberMe" class="form-check-label">Remember me</label>
           </div>
           <p id="error" class="error-message" role="alert"></p>
           <button type="submit" class="btn btn-primary btn-block">
@@ -30,13 +35,23 @@ export async function loginPage() {
             <span id="login-text">Sign In</span>
           </button>
         </form>
+
+        <div class="login-links">
+          <a href="#" class="forgot-link">Forgot Password?</a>
+        </div>
+
+        <hr>
+
+        <div class="login-footer">
+          <p>&copy; 2026 <a href="https://makostech.me" target="_blank">Makos Tech</a></p>
+        </div>
       </div>
     </div>
   `;
 
   app.innerHTML = loginHTML;
 
-  // Password visibility toggle using Font Awesome
+  // Password visibility toggle
   const passwordInput = document.getElementById('password');
   const toggleBtn = document.getElementById('toggle-password');
   const eyeIcon = document.getElementById('eye-icon');
