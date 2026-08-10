@@ -1,3 +1,5 @@
+import { authService } from '../services/authService.js';
+
 export function renderSidebar() {
   return `
     <div class="sidebar">
@@ -11,20 +13,17 @@ export function renderSidebar() {
   `;
 }
 
-// Call this after rendering to highlight active link and bind logout
 export function initSidebar() {
   const currentPage = location.hash.replace('#', '') || 'dashboard';
   document.querySelectorAll('.nav-link').forEach(link => {
-    if (link.dataset.page === currentPage) link.classList.add('active');
-    else link.classList.remove('active');
+    link.classList.toggle('active', link.dataset.page === currentPage);
   });
 
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
-      const { authService } = await import('../services/authService.js');
-      await authService.logout();
-      location.hash = '#login';
+      await authService.logout();   // clears token from localStorage & server cookie
+      location.hash = '#login';     // instantly redirect to login
     });
   }
 }
