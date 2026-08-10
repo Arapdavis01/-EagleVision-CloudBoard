@@ -44,7 +44,6 @@ export async function loginPage() {
   toggleBtn.addEventListener('click', () => {
     const isPassword = passwordInput.type === 'password';
     passwordInput.type = isPassword ? 'text' : 'password';
-    // Toggle between eye and eye-slash icons
     eyeIcon.className = isPassword ? 'fas fa-eye-slash' : 'fas fa-eye';
   });
 
@@ -64,7 +63,6 @@ export async function loginPage() {
       return;
     }
 
-    // Show loading state
     errorEl.textContent = '';
     loginSpinner.classList.remove('hidden');
     loginText.textContent = 'Signing in...';
