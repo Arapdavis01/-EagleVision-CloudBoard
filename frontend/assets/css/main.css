@@ -43,7 +43,7 @@ body {
   justify-content: center;
   background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
   padding: 1rem;
-  z-index: 999;  /* keep above any other content on login page */
+  z-index: 999;
 }
 
 .login-card {
@@ -652,7 +652,7 @@ body.modal-open {
   overflow: hidden;
 }
 
-/* Form inside modal */
+/* Form inside modal (old simple styles replaced by modern-form) */
 .modal-content label {
   display: block;
   margin-bottom: 1rem;
@@ -718,13 +718,20 @@ body.modal-open {
   margin-bottom: 2rem;
 }
 
-/* Chart Card */
+/* Chart Card – compact size */
 .chart-card {
+  max-width: 450px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1rem;
   margin-bottom: 2rem;
 }
 .chart-card h3 {
   margin-bottom: 1rem;
   font-size: 1.1rem;
+}
+.chart-card canvas {
+  max-height: 250px;
 }
 
 /* Overdue Card */
@@ -790,4 +797,71 @@ body.modal-open {
 .empty-state i {
   margin-right: 0.5rem;
   opacity: 0.7;
+}
+
+/* ====== Modern Form Styles (for project modal) ====== */
+.modern-form {
+  font-size: 0.95rem;
+}
+.modern-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+  margin-bottom: 1.2rem;
+}
+@media (max-width: 500px) {
+  .modern-form .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+.modern-form .form-group {
+  display: flex;
+  flex-direction: column;
+}
+.modern-form label {
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  color: var(--text);
+}
+.modern-form label .required {
+  color: var(--error);
+}
+.modern-form input,
+.modern-form select,
+.modern-form textarea {
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+  background: var(--card-bg);
+}
+.modern-form input:focus,
+.modern-form select:focus,
+.modern-form textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+}
+.modern-form .checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-direction: row;
+}
+.modern-form .checkbox-group label {
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+.modern-form .form-divider {
+  margin: 1.5rem 0 1rem;
+  border-color: var(--border);
+}
+.modern-form h3 {
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  color: var(--text);
 }
