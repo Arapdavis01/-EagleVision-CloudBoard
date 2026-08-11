@@ -43,7 +43,7 @@ export async function loginPage() {
         <hr>
 
         <div class="login-footer">
-          <p>&copy; 2026 <a href="https://makostech.me" target="_blank">Makos Tech</a></p>
+          <p>&copy; 2026 <a href="https://makostech.me" target="_blank">Dancun.K.Koech</a></p>
         </div>
       </div>
     </div>
