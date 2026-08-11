@@ -21,9 +21,8 @@ export function initSidebar() {
 
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', async () => {
-      await authService.logout();   // clears token from localStorage & server cookie
-      location.hash = '#login';     // instantly redirect to login
+    logoutBtn.addEventListener('click', () => {
+      authService.logout(); // This now clears token + redirects to #login
     });
   }
 }
