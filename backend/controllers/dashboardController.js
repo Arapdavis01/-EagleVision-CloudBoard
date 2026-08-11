@@ -1,15 +1,15 @@
 const pool = require('../config/db');
 
 exports.kpi = async (req, res) => {
-  const [totalProjects, liveProjects, activeClients, revenue] = await Promise.all([
+  const [totalProjects, overdueCount, activeClients, revenue] = await Promise.all([
     pool.query('SELECT COUNT(*) FROM projects'),
-    pool.query("SELECT COUNT(*) FROM projects WHERE status = 'Live'"),
+    pool.query("SELECT COUNT(*) FROM projects WHERE next_review_date IS NOT NULL AND next_review_date < CURRENT_DATE"),
     pool.query('SELECT COUNT(DISTINCT client) FROM projects WHERE client IS NOT NULL AND client != \'\''),
     pool.query('SELECT COALESCE(SUM(amount),0) as total FROM sales_records')
   ]);
   res.json({
     total_projects: parseInt(totalProjects.rows[0].count),
-    live_projects: parseInt(liveProjects.rows[0].count),
+    overdue_reviews: parseInt(overdueCount.rows[0].count),
     active_clients: parseInt(activeClients.rows[0].count),
     total_revenue: parseFloat(revenue.rows[0].total)
   });
@@ -83,6 +83,40 @@ exports.forSaleProjects = async (req, res) => {
      WHERE for_sale = true
      ORDER BY asking_price DESC NULLS LAST
      LIMIT 5`
+  );
+  res.json(rows);
+};
+
+// 6. Projects summary (all projects with essential fields)
+exports.getProjectsSummary = async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT id, name, client, status, location
+     FROM projects
+     ORDER BY name ASC`
+  );
+  res.json(rows);
+};
+
+// 7. Clients summary (distinct clients with project count and active flag)
+exports.getClientsSummary = async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT client, COUNT(*) as project_count,
+            bool_or(status IN ('Live','Development')) as is_active
+     FROM projects
+     WHERE client IS NOT NULL AND client != ''
+     GROUP BY client
+     ORDER BY project_count DESC`
+  );
+  res.json(rows);
+};
+
+// 8. Revenue summary (all sales with project name)
+exports.getRevenueSummary = async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT s.id, s.amount, s.sale_date, s.notes, p.name as project_name
+     FROM sales_records s
+     JOIN projects p ON s.project_id = p.id
+     ORDER BY s.sale_date DESC`
   );
   res.json(rows);
 };
