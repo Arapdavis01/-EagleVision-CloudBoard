@@ -13,10 +13,10 @@ export async function projectsPage() {
       <h2>Projects</h2>
       <div class="toolbar">
         <input type="text" id="search" placeholder="Search...">
-        <button id="add-project-btn" class="btn">Add Project</button>
+        <button id="add-project-btn" class="btn"><i class="fas fa-plus"></i> Add Project</button>
         <div class="view-toggle">
-          <button class="btn view-grid active" data-view="grid">Grid</button>
-          <button class="btn view-list" data-view="list">List</button>
+          <button class="btn view-grid active" data-view="grid"><i class="fas fa-th-large"></i> Grid</button>
+          <button class="btn view-list" data-view="list"><i class="fas fa-list"></i> List</button>
         </div>
       </div>
       <div id="projects-container" class="projects-grid"></div>
@@ -25,8 +25,15 @@ export async function projectsPage() {
 
   initSidebar();
 
+  // --- State ---
   let currentView = 'grid';
   let projects = [];
+  let activeFilter = '';
+
+  // --- Read filter from URL hash ---
+  const hash = location.hash.split('?')[1] || '';
+  const params = new URLSearchParams(hash);
+  activeFilter = params.get('filter') || '';   // 'all', 'live', 'clients', 'revenue'
 
   const searchInput = document.getElementById('search');
   const addBtn = document.getElementById('add-project-btn');
@@ -34,19 +41,33 @@ export async function projectsPage() {
   const viewGridBtn = document.querySelector('.view-grid');
   const viewListBtn = document.querySelector('.view-list');
 
-  // Load projects from API
+  // --- Load projects (with optional search and filter) ---
   async function loadProjects(search = '') {
     projects = await projectService.getAll(search);
+
+    // Apply client‑side filter based on URL parameter
+    if (activeFilter === 'live') {
+      projects = projects.filter(p => p.status === 'Live');
+    } else if (activeFilter === 'revenue') {
+      // Redirect to finance – no need to show projects
+      location.hash = '#finance';
+      return;
+    } else if (activeFilter === 'clients') {
+      // Could show a modal with distinct clients; for now just show all
+      // (you can add a clients modal later)
+    }
+    // 'all' or empty shows everything
+
     renderProjects();
   }
 
-  // Render the project cards
+  // --- Render project cards ---
   function renderProjects() {
     container.className = currentView === 'grid' ? 'projects-grid' : 'projects-list';
     container.innerHTML = projects.map(p => renderProjectCard(p, currentView)).join('');
   }
 
-  // Event delegation for all project actions
+  // --- Event delegation for project card actions ---
   container.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
     if (!btn) return;
@@ -63,6 +84,7 @@ export async function projectsPage() {
     }
   });
 
+  // --- Edit project handler (with Back button support) ---
   async function handleEdit(projectId) {
     const project = projects.find(p => p.id == projectId);
     if (!project) return showToast('Project not found', 'error');
@@ -70,6 +92,12 @@ export async function projectsPage() {
     const { close } = showModal(renderProjectForm(project));
     const form = document.getElementById('project-form');
     if (!form) return;
+
+    // ✅ Back button closes the modal
+    const cancelBtn = document.querySelector('.cancel-form-btn');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => close());
+    }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -86,6 +114,7 @@ export async function projectsPage() {
     });
   }
 
+  // --- Delete project handler ---
   async function handleDelete(projectId) {
     if (!confirm('Delete this project?')) return;
     try {
@@ -97,6 +126,7 @@ export async function projectsPage() {
     }
   }
 
+  // --- Copy public link handler ---
   function handleCopyLink(token) {
     if (!token) {
       showToast('No public link available', 'error');
@@ -108,11 +138,17 @@ export async function projectsPage() {
       .catch(() => showToast('Failed to copy', 'error'));
   }
 
-  // Add Project button
+  // --- Add Project button (with Back button support) ---
   addBtn.addEventListener('click', () => {
     const { close } = showModal(renderProjectForm());
     const form = document.getElementById('project-form');
     if (!form) return;
+
+    // ✅ Back button closes the modal
+    const cancelBtn = document.querySelector('.cancel-form-btn');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => close());
+    }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -129,10 +165,10 @@ export async function projectsPage() {
     });
   });
 
-  // Search input
+  // --- Search input ---
   searchInput.addEventListener('input', (e) => loadProjects(e.target.value));
 
-  // View toggle
+  // --- View toggle (Grid/List) ---
   viewGridBtn.addEventListener('click', () => {
     currentView = 'grid';
     viewGridBtn.classList.add('active');
@@ -147,6 +183,6 @@ export async function projectsPage() {
     renderProjects();
   });
 
-  // Initial load
+  // --- Initial load ---
   loadProjects();
 }
