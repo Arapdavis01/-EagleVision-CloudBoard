@@ -13,8 +13,11 @@ const routes = {
 };
 
 export async function initRouter() {
-  const hash = location.hash || '#login';
-  const pageLoader = routes[hash];
+  // Split on '?' to ignore query strings in the hash (e.g., #projects?filter=all)
+  const fullHash = location.hash || '#login';
+  const baseHash = fullHash.split('?')[0];
+
+  const pageLoader = routes[baseHash];
   if (pageLoader) {
     try {
       await pageLoader();
