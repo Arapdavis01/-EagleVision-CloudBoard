@@ -1,9 +1,24 @@
 export function renderProjectCard(project, view = 'grid') {
-  const techStack = project.tech_stack
-    ? JSON.parse(project.tech_stack).map(t => `<span class="tech-badge">${t}</span>`).join(' ')
-    : '';
+  // Safely handle tech_stack (could be string or already an array)
+  let techList = [];
+  if (project.tech_stack) {
+    if (typeof project.tech_stack === 'string') {
+      try {
+        techList = JSON.parse(project.tech_stack);
+      } catch (e) {
+        techList = [];   // ignore parse errors
+      }
+    } else if (Array.isArray(project.tech_stack)) {
+      techList = project.tech_stack;
+    }
+  }
+
+  const techStack = techList
+    .map(t => `<span class="tech-badge">${escapeHtml(t)}</span>`)
+    .join(' ');
+
   const tags = project.tags
-    ? project.tags.split(',').map(t => `<span class="tag-badge">${t.trim()}</span>`).join(' ')
+    ? project.tags.split(',').map(t => `<span class="tag-badge">${escapeHtml(t.trim())}</span>`).join(' ')
     : '';
 
   if (view === 'grid') {
@@ -11,7 +26,7 @@ export function renderProjectCard(project, view = 'grid') {
       <div class="card project-card" data-id="${project.id}">
         <div class="project-card-header">
           <h3>${escapeHtml(project.name)}</h3>
-          <span class="status ${project.status.toLowerCase()}">${project.status}</span>
+          <span class="status ${(project.status || '').toLowerCase()}">${project.status || '—'}</span>
         </div>
         <p class="project-client"><i class="fas fa-user"></i> ${escapeHtml(project.client) || '—'}</p>
         ${project.location ? `<p class="project-location"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(project.location)}</p>` : ''}
@@ -26,13 +41,13 @@ export function renderProjectCard(project, view = 'grid') {
       </div>
     `;
   } else {
-    // List view – compact row
+    // List view
     return `
       <div class="card project-list-row" data-id="${project.id}">
         <div class="list-row-content">
           <span class="list-name">${escapeHtml(project.name)}</span>
           <span class="list-client">${escapeHtml(project.client) || '—'}</span>
-          <span class="status ${project.status.toLowerCase()}">${project.status}</span>
+          <span class="status ${(project.status || '').toLowerCase()}">${project.status || '—'}</span>
           <span class="list-location">${escapeHtml(project.location) || '—'}</span>
           <div class="list-actions">
             <button class="btn quick-view-project" data-id="${project.id}"><i class="fas fa-eye"></i></button>
