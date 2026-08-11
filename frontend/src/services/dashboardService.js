@@ -8,4 +8,7 @@ export const dashboardService = {
   getOverdueReviews: () => api('/api/dashboard/overdue-reviews'),
   getCountyBreakdown: () => api('/api/dashboard/county-breakdown'),
   getForSaleProjects: () => api('/api/dashboard/for-sale'),
+  getProjectsSummary: () => api('/api/dashboard/projects-summary'),
+  getClientsSummary: () => api('/api/dashboard/clients-summary'),
+  getRevenueSummary: () => api('/api/dashboard/revenue-summary'),
 };
