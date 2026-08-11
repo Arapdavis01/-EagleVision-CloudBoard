@@ -23,16 +23,23 @@ exports.getOne = async (req, res) => {
 exports.create = async (req, res) => {
   const {
     name, client, live_url, github, hosting, location, description,
-    tech_stack, tags, next_review_date, thumbnail_url, status
+    tech_stack, tags, next_review_date, thumbnail_url, status,
+    for_sale, asking_price
   } = req.body;
+
+  // Convert for_sale to boolean
+  const isForSale = for_sale === true || for_sale === 'true';
+  const askingPrice = asking_price ? parseFloat(asking_price) : null;
 
   const { rows } = await pool.query(
     `INSERT INTO projects
-     (name, client, live_url, github, hosting, location, description, tech_stack, tags, next_review_date, thumbnail_url, status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+     (name, client, live_url, github, hosting, location, description, tech_stack, tags,
+      next_review_date, thumbnail_url, status, for_sale, asking_price)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
      RETURNING *`,
     [name, client, live_url, github, hosting, location, description,
-     JSON.stringify(tech_stack || []), tags || '', next_review_date, thumbnail_url, status || 'Planning']
+     JSON.stringify(tech_stack || []), tags || '', next_review_date, thumbnail_url,
+     status || 'Planning', isForSale, askingPrice]
   );
   res.status(201).json(rows[0]);
 };
@@ -41,18 +48,24 @@ exports.update = async (req, res) => {
   const { id } = req.params;
   const {
     name, client, live_url, github, hosting, location, description,
-    tech_stack, tags, next_review_date, thumbnail_url, status
+    tech_stack, tags, next_review_date, thumbnail_url, status,
+    for_sale, asking_price
   } = req.body;
+
+  // Convert for_sale to boolean
+  const isForSale = for_sale === true || for_sale === 'true';
+  const askingPrice = asking_price ? parseFloat(asking_price) : null;
 
   const { rows } = await pool.query(
     `UPDATE projects SET
      name = $1, client = $2, live_url = $3, github = $4, hosting = $5, location = $6,
      description = $7, tech_stack = $8, tags = $9, next_review_date = $10,
-     thumbnail_url = $11, status = $12, last_updated = NOW()
-     WHERE id = $13 RETURNING *`,
+     thumbnail_url = $11, status = $12, last_updated = NOW(),
+     for_sale = $13, asking_price = $14
+     WHERE id = $15 RETURNING *`,
     [name, client, live_url, github, hosting, location, description,
      JSON.stringify(tech_stack || []), tags || '', next_review_date, thumbnail_url,
-     status, id]
+     status, isForSale, askingPrice, id]
   );
   if (rows.length === 0) return res.status(404).json({ error: 'Project not found' });
   res.json(rows[0]);
