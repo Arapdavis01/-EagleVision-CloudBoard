@@ -157,7 +157,7 @@ export async function dashboardPage() {
   });
 }
 
-// ==================== KPI Modal Openers ====================
+// ==================== Enhanced KPI Modal Openers ====================
 
 async function openKpiModal(type) {
   switch (type) {
@@ -176,98 +176,171 @@ async function openKpiModal(type) {
   }
 }
 
+// --- Projects Modal ---
 async function showProjectsSummaryModal() {
   const projects = await dashboardService.getProjectsSummary().catch(() => []);
   const content = `
-    <h2>All Projects</h2>
-    <table class="summary-table">
-      <thead><tr><th>Name</th><th>Client</th><th>Status</th><th>Location</th></tr></thead>
-      <tbody>
-        ${projects.map(p => `<tr>
-          <td>${escapeHtml(p.name)}</td>
-          <td>${escapeHtml(p.client) || '—'}</td>
-          <td><span class="status ${p.status.toLowerCase()}">${p.status}</span></td>
-          <td>${escapeHtml(p.location) || '—'}</td>
-        </tr>`).join('')}
-        ${projects.length === 0 ? '<tr><td colspan="4">No projects found.</td></tr>' : ''}
-      </tbody>
-    </table>
+    <div class="modal-header-bar">
+      <h2><i class="fas fa-folder-open"></i> All Projects</h2>
+      <span class="modal-count">${projects.length} total</span>
+    </div>
+    <input type="text" id="modal-project-search" class="modal-search" placeholder="Search by name or client..." />
+    <div class="summary-table-wrapper">
+      <table class="summary-table">
+        <thead>
+          <tr><th>Name</th><th>Client</th><th>Status</th><th>Location</th></tr>
+        </thead>
+        <tbody id="modal-project-tbody">
+          ${renderProjectRows(projects)}
+        </tbody>
+      </table>
+    </div>
+    <p class="modal-no-results hidden" id="modal-no-projects">No matching projects.</p>
   `;
   showModal(content);
+
+  // Live search filter
+  document.getElementById('modal-project-search')?.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('#modal-project-tbody tr');
+    let visible = 0;
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      const show = text.includes(term);
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    document.getElementById('modal-no-projects')?.classList.toggle('hidden', visible > 0);
+  });
 }
 
+function renderProjectRows(projects) {
+  if (projects.length === 0) return '<tr><td colspan="4">No projects found.</td></tr>';
+  return projects.map(p => `
+    <tr>
+      <td><strong>${escapeHtml(p.name)}</strong></td>
+      <td>${escapeHtml(p.client) || '—'}</td>
+      <td><span class="status ${p.status.toLowerCase()}">${p.status}</span></td>
+      <td>${escapeHtml(p.location) || '—'}</td>
+    </tr>
+  `).join('');
+}
+
+// --- Overdue Reviews Modal ---
 async function showOverdueSummaryModal() {
   const overdue = await dashboardService.getOverdueReviews().catch(() => []);
   const now = new Date();
   const content = `
-    <h2>Overdue Reviews</h2>
-    <table class="summary-table">
-      <thead><tr><th>Name</th><th>Client</th><th>Days Overdue</th></tr></thead>
-      <tbody>
-        ${overdue.map(r => {
-          const dueDate = new Date(r.next_review_date);
-          const days = Math.floor((now - dueDate) / (1000 * 60 * 60 * 24));
-          return `<tr>
-            <td>${escapeHtml(r.name)}</td>
-            <td>${escapeHtml(r.client) || '—'}</td>
-            <td><span class="badge badge-overdue">${days} day${days !== 1 ? 's' : ''}</span></td>
-          </tr>`;
-        }).join('')}
-        ${overdue.length === 0 ? '<tr><td colspan="3">No overdue reviews 🎉</td></tr>' : ''}
-      </tbody>
-    </table>
+    <div class="modal-header-bar">
+      <h2><i class="fas fa-exclamation-circle" style="color:#ef4444;"></i> Overdue Reviews</h2>
+      <span class="modal-count">${overdue.length} overdue</span>
+    </div>
+    <div class="summary-table-wrapper">
+      <table class="summary-table">
+        <thead>
+          <tr><th>Name</th><th>Client</th><th>Days Overdue</th><th>Action</th></tr>
+        </thead>
+        <tbody id="overdue-tbody">
+          ${overdue.map(r => {
+            const dueDate = new Date(r.next_review_date);
+            const days = Math.floor((now - dueDate) / (1000 * 60 * 60 * 24));
+            return `<tr>
+              <td><strong>${escapeHtml(r.name)}</strong></td>
+              <td>${escapeHtml(r.client) || '—'}</td>
+              <td><span class="badge badge-overdue">${days} day${days !== 1 ? 's' : ''}</span></td>
+              <td><button class="btn btn-sm btn-outline resolve-overdue-btn" data-id="${r.id}">Resolve</button></td>
+            </tr>`;
+          }).join('')}
+          ${overdue.length === 0 ? '<tr><td colspan="4">No overdue reviews 🎉</td></tr>' : ''}
+        </tbody>
+      </table>
+    </div>
   `;
   showModal(content);
+
+  // Resolve button logic
+  document.querySelectorAll('.resolve-overdue-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const projectId = btn.dataset.id;
+      try {
+        // Set next review date to today to mark as resolved
+        await projectService.update(projectId, { next_review_date: new Date().toISOString().split('T')[0] });
+        showToast('Review marked as resolved', 'success');
+        btn.closest('tr')?.remove();
+        refreshDashboard(); // update KPI counts
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  });
 }
 
+// --- Clients Modal ---
 async function showClientsSummaryModal() {
   const clients = await dashboardService.getClientsSummary().catch(() => []);
+  const activeCount = clients.filter(c => c.is_active).length;
   const content = `
-    <h2>Clients</h2>
-    <table class="summary-table">
-      <thead><tr><th>Client</th><th>Projects</th><th>Status</th></tr></thead>
-      <tbody>
-        ${clients.map(c => `<tr>
-          <td>${escapeHtml(c.client)}</td>
-          <td>${c.project_count}</td>
-          <td>${c.is_active ? '<span class="badge badge-upcoming">Active</span>' : '<span class="badge" style="background:#f3f4f6;color:#6b7280;">Inactive</span>'}</td>
-        </tr>`).join('')}
-        ${clients.length === 0 ? '<tr><td colspan="3">No clients yet.</td></tr>' : ''}
-      </tbody>
-    </table>
+    <div class="modal-header-bar">
+      <h2><i class="fas fa-users"></i> Clients</h2>
+      <span class="modal-count">${clients.length} total · ${activeCount} active</span>
+    </div>
+    <div class="summary-table-wrapper">
+      <table class="summary-table">
+        <thead>
+          <tr><th>Client</th><th>Projects</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          ${clients.map(c => `<tr>
+            <td><strong>${escapeHtml(c.client)}</strong></td>
+            <td>${c.project_count}</td>
+            <td>${c.is_active ? '<span class="badge badge-upcoming">Active</span>' : '<span class="badge" style="background:#f3f4f6;color:#6b7280;">Inactive</span>'}</td>
+          </tr>`).join('')}
+          ${clients.length === 0 ? '<tr><td colspan="3">No clients yet.</td></tr>' : ''}
+        </tbody>
+      </table>
+    </div>
   `;
   showModal(content);
 }
 
+// --- Revenue Modal ---
 async function showRevenueSummaryModal() {
   const sales = await dashboardService.getRevenueSummary().catch(() => []);
   const total = sales.reduce((sum, s) => sum + parseFloat(s.amount), 0);
   const content = `
-    <h2>Revenue Breakdown</h2>
-    <table class="summary-table">
-      <thead><tr><th>Project</th><th>Amount</th><th>Date</th></tr></thead>
-      <tbody>
-        ${sales.map(s => `<tr>
-          <td>${escapeHtml(s.project_name)}</td>
-          <td>$${parseFloat(s.amount).toLocaleString()}</td>
-          <td>${new Date(s.sale_date).toLocaleDateString()}</td>
-        </tr>`).join('')}
-        ${sales.length === 0 ? '<tr><td colspan="3">No sales recorded yet.</td></tr>' : ''}
-      </tbody>
-      <tfoot>
-        <tr><td colspan="2" style="text-align:right;font-weight:700;">Total Revenue</td><td style="font-weight:700;">$${total.toLocaleString()}</td></tr>
-      </tfoot>
-    </table>
+    <div class="modal-header-bar">
+      <h2><i class="fas fa-dollar-sign"></i> Revenue Breakdown</h2>
+      <span class="modal-count">${sales.length} sales</span>
+    </div>
+    <div class="summary-table-wrapper">
+      <table class="summary-table">
+        <thead>
+          <tr><th>Project</th><th>Amount</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+          ${sales.map(s => `<tr>
+            <td>${escapeHtml(s.project_name)}</td>
+            <td>$${parseFloat(s.amount).toLocaleString()}</td>
+            <td>${new Date(s.sale_date).toLocaleDateString()}</td>
+          </tr>`).join('')}
+          ${sales.length === 0 ? '<tr><td colspan="3">No sales recorded yet.</td></tr>' : ''}
+        </tbody>
+        <tfoot>
+          <tr><td colspan="2" style="text-align:right;font-weight:700;">Total Revenue</td><td style="font-weight:700;">$${total.toLocaleString()}</td></tr>
+        </tfoot>
+      </table>
+    </div>
   `;
   showModal(content);
 }
 
-// ==================== Helper for escaping ====================
+// ==================== Helper Functions ====================
+
 function escapeHtml(text) {
   return text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 }
 
-// ==================== Placeholder & Real KPI renderers (UPDATED) ====================
+// ==================== KPI Renderers ====================
 
 function renderPlaceholderKPIs() {
   return `
@@ -319,7 +392,7 @@ function renderClickableKPIs(data) {
   `;
 }
 
-// ==================== Chart, reviews, counties, for-sale helpers (unchanged) ====================
+// ==================== Other dashboard components (unchanged) ====================
 
 function renderStatusChart(distribution) {
   if (!distribution || distribution.length === 0) return;
