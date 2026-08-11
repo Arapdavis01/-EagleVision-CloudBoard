@@ -1,339 +1,66 @@
-import { renderSidebar, initSidebar } from '../../components/sidebar.js';
-import { projectService } from '../../services/projectService.js';
-import { renderProjectCard } from '../../components/projectCard.js';
-import { showModal } from '../../components/modal.js';
-import { renderProjectForm } from '../../components/projectForm.js';
-import { showToast } from '../../utils/notifications.js';
+export function renderProjectCard(project, view = 'grid') {
+  // Safely handle tech_stack (could be string or already an array)
+  let techList = [];
+  if (project.tech_stack) {
+    if (typeof project.tech_stack === 'string') {
+      try {
+        techList = JSON.parse(project.tech_stack);
+      } catch (e) {
+        techList = [];   // ignore parse errors
+      }
+    } else if (Array.isArray(project.tech_stack)) {
+      techList = project.tech_stack;
+    }
+  }
 
-export async function projectsPage() {
-  // ✅ Activate the green/gold glass‑morphism theme
-  document.body.classList.add('app-dashboard');
+  const techStack = techList
+    .map(t => `<span class="tech-badge">${escapeHtml(t)}</span>`)
+    .join(' ');
 
-  const app = document.getElementById('app');
-  app.innerHTML = `
-    ${renderSidebar()}
-    <div class="main-content">
-      <div class="projects-header">
-        <h2>Projects</h2>
-        <button id="add-project-btn" class="btn btn-primary"><i class="fas fa-plus"></i> Add Project</button>
-      </div>
+  const tags = project.tags
+    ? project.tags.split(',').map(t => `<span class="tag-badge">${escapeHtml(t.trim())}</span>`).join(' ')
+    : '';
 
-      <!-- Filter bar: status pills -->
-      <div class="filter-bar">
-        <button class="filter-pill active" data-status="all">All</button>
-        <button class="filter-pill" data-status="Planning">Planning</button>
-        <button class="filter-pill" data-status="Development">Development</button>
-        <button class="filter-pill" data-status="Live">Live</button>
-        <button class="filter-pill" data-status="Maintenance">Maintenance</button>
-        <button class="filter-pill" data-status="Archived">Archived</button>
-      </div>
-
-      <!-- Toolbar: search, sort, view toggle -->
-      <div class="toolbar">
-        <input type="text" id="search" placeholder="Search by name, client, or tags...">
-        <select id="sort-select" class="sort-select">
-          <option value="name-asc">Name A–Z</option>
-          <option value="name-desc">Name Z–A</option>
-          <option value="client-asc">Client A–Z</option>
-          <option value="client-desc">Client Z–A</option>
-          <option value="updated-desc">Last Updated (newest)</option>
-          <option value="updated-asc">Last Updated (oldest)</option>
-        </select>
-        <div class="view-toggle">
-          <button class="btn view-grid active" data-view="grid"><i class="fas fa-th-large"></i> Grid</button>
-          <button class="btn view-list" data-view="list"><i class="fas fa-list"></i> List</button>
+  if (view === 'grid') {
+    return `
+      <div class="card project-card" data-id="${project.id}">
+        <div class="project-card-header">
+          <h3>${escapeHtml(project.name)}</h3>
+          <span class="status ${(project.status || '').toLowerCase()}">${project.status || '—'}</span>
+        </div>
+        <p class="project-client"><i class="fas fa-user"></i> ${escapeHtml(project.client) || '—'}</p>
+        ${project.location ? `<p class="project-location"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(project.location)}</p>` : ''}
+        ${techStack ? `<div class="project-tech">${techStack}</div>` : ''}
+        ${tags ? `<div class="project-tags">${tags}</div>` : ''}
+        <div class="actions">
+          <button class="btn quick-view-project" data-id="${project.id}"><i class="fas fa-eye"></i> Quick View</button>
+          <button class="btn edit-project" data-id="${project.id}"><i class="fas fa-edit"></i> Edit</button>
+          <button class="btn copy-link" data-token="${project.public_token || ''}"><i class="fas fa-link"></i> Copy Link</button>
+          <button class="btn btn-danger delete-project" data-id="${project.id}"><i class="fas fa-trash"></i> Delete</button>
         </div>
       </div>
-
-      <!-- Loading skeleton (shown initially) -->
-      <div id="loading-skeleton" class="projects-grid">
-        ${renderSkeletonCards(6)}
-      </div>
-
-      <!-- Projects container (hidden until data loads) -->
-      <div id="projects-container" class="projects-grid hidden"></div>
-
-      <!-- Empty state (hidden by default) -->
-      <div id="empty-state" class="empty-state hidden">
-        <i class="fas fa-folder-open fa-3x"></i>
-        <p>No projects found.</p>
-      </div>
-    </div>
-  `;
-
-  initSidebar();
-
-  // --- State ---
-  let currentView = 'grid';
-  let projects = [];
-  let currentStatus = 'all';
-  let currentSort = 'name-asc';
-  let searchTerm = '';
-
-  // Read optional URL filter (from dashboard click)
-  const hash = location.hash.split('?')[1] || '';
-  const params = new URLSearchParams(hash);
-  const urlFilter = params.get('filter');
-  if (urlFilter === 'live') currentStatus = 'Live';
-  else if (urlFilter === 'clients') currentStatus = 'all';
-  else if (urlFilter === 'revenue') { location.hash = '#finance'; return; }
-
-  // --- DOM elements ---
-  const searchInput = document.getElementById('search');
-  const sortSelect = document.getElementById('sort-select');
-  const container = document.getElementById('projects-container');
-  const skeleton = document.getElementById('loading-skeleton');
-  const emptyState = document.getElementById('empty-state');
-  const viewGridBtn = document.querySelector('.view-grid');
-  const viewListBtn = document.querySelector('.view-list');
-  const filterPills = document.querySelectorAll('.filter-pill');
-
-  // --- Helper: escape HTML ---
-  function escapeHtml(text) {
-    return text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
-  }
-
-  // --- Safe tech stack parser ---
-  function parseTechStack(tech) {
-    if (!tech) return [];
-    if (Array.isArray(tech)) return tech;
-    if (typeof tech === 'string') {
-      try { return JSON.parse(tech); } catch (e) { return []; }
-    }
-    return [];
-  }
-
-  // --- Loading skeleton helper ---
-  function renderSkeletonCards(count) {
-    return Array(count).fill().map(() => `
-      <div class="card skeleton-card">
-        <div class="skeleton skeleton-title"></div>
-        <div class="skeleton skeleton-text"></div>
-        <div class="skeleton skeleton-badge"></div>
-      </div>
-    `).join('');
-  }
-
-  // --- Load projects ---
-  async function loadProjects(search = '') {
-    skeleton.classList.remove('hidden');
-    container.classList.add('hidden');
-    emptyState.classList.add('hidden');
-
-    try {
-      projects = await projectService.getAll(search);
-    } catch (err) {
-      console.error('Failed to load projects:', err);
-      showToast('Failed to load projects. Check connection.', 'error');
-      projects = [];
-    }
-
-    if (currentStatus !== 'all') {
-      projects = projects.filter(p => p.status === currentStatus);
-    }
-
-    sortProjects();
-
-    if (projects.length === 0) {
-      emptyState.classList.remove('hidden');
-    } else {
-      emptyState.classList.add('hidden');
-    }
-
-    renderProjects();
-    skeleton.classList.add('hidden');
-    container.classList.remove('hidden');
-  }
-
-  // --- Sort projects ---
-  function sortProjects() {
-    projects.sort((a, b) => {
-      const nameA = (a.name || '').toLowerCase();
-      const nameB = (b.name || '').toLowerCase();
-      const clientA = (a.client || '').toLowerCase();
-      const clientB = (b.client || '').toLowerCase();
-      const updatedA = new Date(a.last_updated || 0);
-      const updatedB = new Date(b.last_updated || 0);
-
-      switch (currentSort) {
-        case 'name-asc': return nameA.localeCompare(nameB);
-        case 'name-desc': return nameB.localeCompare(nameA);
-        case 'client-asc': return clientA.localeCompare(clientB);
-        case 'client-desc': return clientB.localeCompare(clientA);
-        case 'updated-desc': return updatedB - updatedA;
-        case 'updated-asc': return updatedA - updatedB;
-        default: return 0;
-      }
-    });
-  }
-
-  // --- Render project cards ---
-  function renderProjects() {
-    container.className = currentView === 'grid' ? 'projects-grid' : 'projects-list';
-    container.innerHTML = projects.map(p => renderProjectCard(p, currentView)).join('');
-  }
-
-  // --- Event delegation for project actions ---
-  container.addEventListener('click', (e) => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-
-    const projectId = btn.dataset.id;
-    if (!projectId) return;
-
-    if (btn.classList.contains('edit-project')) {
-      handleEdit(projectId);
-    } else if (btn.classList.contains('delete-project')) {
-      handleDelete(projectId);
-    } else if (btn.classList.contains('copy-link')) {
-      handleCopyLink(btn.dataset.token);
-    } else if (btn.classList.contains('quick-view-project')) {
-      handleQuickView(projectId);
-    }
-  });
-
-  // --- Quick View Modal (fixed tech_stack parsing) ---
-  function handleQuickView(projectId) {
-    const project = projects.find(p => p.id == projectId);
-    if (!project) return showToast('Project not found', 'error');
-
-    const techList = parseTechStack(project.tech_stack);
-    const techStack = techList.length ? techList.join(', ') : '—';
-    const tags = project.tags ? project.tags : '—';
-    const content = `
-      <div class="modal-header-bar">
-        <h2><i class="fas fa-info-circle"></i> ${escapeHtml(project.name)}</h2>
-        <span class="status ${(project.status || '').toLowerCase()}">${project.status || '—'}</span>
-      </div>
-      <div class="quick-view-grid">
-        <div><strong>Client:</strong> ${escapeHtml(project.client) || '—'}</div>
-        <div><strong>Location:</strong> ${escapeHtml(project.location) || '—'}</div>
-        <div><strong>Live URL:</strong> <a href="${escapeHtml(project.live_url)}" target="_blank">${escapeHtml(project.live_url) || '—'}</a></div>
-        <div><strong>GitHub:</strong> <a href="${escapeHtml(project.github)}" target="_blank">${escapeHtml(project.github) || '—'}</a></div>
-        <div><strong>Hosting:</strong> ${escapeHtml(project.hosting) || '—'}</div>
-        <div><strong>Tech Stack:</strong> ${techStack}</div>
-        <div><strong>Tags:</strong> ${tags}</div>
-        <div><strong>Last Updated:</strong> ${project.last_updated ? new Date(project.last_updated).toLocaleString() : '—'}</div>
-        <div><strong>Next Review:</strong> ${project.next_review_date ? new Date(project.next_review_date).toLocaleDateString() : '—'}</div>
-      </div>
-      <div class="form-group">
-        <strong>Description:</strong>
-        <p>${escapeHtml(project.description) || 'No description.'}</p>
+    `;
+  } else {
+    // List view
+    return `
+      <div class="card project-list-row" data-id="${project.id}">
+        <div class="list-row-content">
+          <span class="list-name">${escapeHtml(project.name)}</span>
+          <span class="list-client">${escapeHtml(project.client) || '—'}</span>
+          <span class="status ${(project.status || '').toLowerCase()}">${project.status || '—'}</span>
+          <span class="list-location">${escapeHtml(project.location) || '—'}</span>
+          <div class="list-actions">
+            <button class="btn quick-view-project" data-id="${project.id}"><i class="fas fa-eye"></i></button>
+            <button class="btn edit-project" data-id="${project.id}"><i class="fas fa-edit"></i></button>
+            <button class="btn copy-link" data-token="${project.public_token || ''}"><i class="fas fa-link"></i></button>
+            <button class="btn btn-danger delete-project" data-id="${project.id}"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
       </div>
     `;
-    showModal(content);
   }
+}
 
-  // --- Edit handler ---
-  async function handleEdit(projectId) {
-    const project = projects.find(p => p.id == projectId);
-    if (!project) return showToast('Project not found', 'error');
-
-    const { close } = showModal(renderProjectForm(project));
-    const form = document.getElementById('project-form');
-    if (!form) return;
-
-    const cancelBtn = document.querySelector('.cancel-form-btn');
-    if (cancelBtn) cancelBtn.addEventListener('click', () => close());
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
-      try {
-        await projectService.update(projectId, data);
-        close();
-        await loadProjects();
-        showToast('Project updated', 'success');
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
-    });
-  }
-
-  // --- Delete handler ---
-  async function handleDelete(projectId) {
-    if (!confirm('Delete this project?')) return;
-    try {
-      await projectService.delete(projectId);
-      await loadProjects();
-      showToast('Project deleted', 'info');
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  }
-
-  // --- Copy link handler ---
-  function handleCopyLink(token) {
-    if (!token) {
-      showToast('No public link available', 'error');
-      return;
-    }
-    const link = `${window.location.origin}/#public-status?token=${token}`;
-    navigator.clipboard.writeText(link)
-      .then(() => showToast('Public link copied!', 'success'))
-      .catch(() => showToast('Failed to copy', 'error'));
-  }
-
-  // --- Add Project button ---
-  document.getElementById('add-project-btn').addEventListener('click', () => {
-    const { close } = showModal(renderProjectForm());
-    const form = document.getElementById('project-form');
-    if (!form) return;
-
-    const cancelBtn = document.querySelector('.cancel-form-btn');
-    if (cancelBtn) cancelBtn.addEventListener('click', () => close());
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
-      try {
-        await projectService.create(data);
-        close();
-        await loadProjects();
-        showToast('Project created', 'success');
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
-    });
-  });
-
-  // --- Search input ---
-  searchInput.addEventListener('input', (e) => loadProjects(e.target.value));
-
-  // --- Sort select ---
-  sortSelect.addEventListener('change', (e) => {
-    currentSort = e.target.value;
-    sortProjects();
-    renderProjects();
-  });
-
-  // --- Filter pills ---
-  filterPills.forEach(pill => {
-    pill.addEventListener('click', () => {
-      filterPills.forEach(p => p.classList.remove('active'));
-      pill.classList.add('active');
-      currentStatus = pill.dataset.status;
-      loadProjects(searchInput.value);
-    });
-  });
-
-  // --- View toggle ---
-  viewGridBtn.addEventListener('click', () => {
-    currentView = 'grid';
-    viewGridBtn.classList.add('active');
-    viewListBtn.classList.remove('active');
-    renderProjects();
-  });
-
-  viewListBtn.addEventListener('click', () => {
-    currentView = 'list';
-    viewListBtn.classList.add('active');
-    viewGridBtn.classList.remove('active');
-    renderProjects();
-  });
-
-  // --- Initial load ---
-  loadProjects();
+function escapeHtml(text) {
+  return text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 }
