@@ -67,24 +67,24 @@ export async function dashboardPage() {
   const escapeHtml = (text) =>
     text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 
-  // Refresh all dashboard data
+  // Progressive loading – show KPIs immediately, then load the rest
   async function refreshDashboard() {
-    const [kpis, upcomingReviews, overdueReviews, statusDist, pendingRevenue, counties, projects, forSale] =
-      await Promise.all([
-        dashboardService.getKPIs(),
-        dashboardService.getUpcomingReviews(),
-        dashboardService.getOverdueReviews().catch(() => []),
-        dashboardService.getStatusDistribution().catch(() => []),
-        dashboardService.getPendingRevenue().catch(() => ({ total_pending: 0 })),
-        dashboardService.getCountyBreakdown().catch(() => []),
-        projectService.getAll(),
-        dashboardService.getForSaleProjects().catch(() => [])
-      ]);
+    // Fire all requests at once
+    const kpiPromise = dashboardService.getKPIs();
+    const pendingRevenuePromise = dashboardService.getPendingRevenue().catch(() => ({ total_pending: 0 }));
+    const upcomingReviewsPromise = dashboardService.getUpcomingReviews().catch(() => []);
+    const overdueReviewsPromise = dashboardService.getOverdueReviews().catch(() => []);
+    const statusDistPromise = dashboardService.getStatusDistribution().catch(() => []);
+    const countiesPromise = dashboardService.getCountyBreakdown().catch(() => []);
+    const projectsPromise = projectService.getAll();
+    const forSalePromise = dashboardService.getForSaleProjects().catch(() => []);
 
-    // 1. KPI Cards (clickable)
+    // ---------- Render KPIs as soon as they arrive ----------
+    const kpis = await kpiPromise;
     document.getElementById('kpi-container').innerHTML = renderClickableKPIs(kpis);
 
-    // 2. Pending Revenue
+    // ---------- Render Pending Revenue (also fast) ----------
+    const pendingRevenue = await pendingRevenuePromise;
     const pendingRevHtml = pendingRevenue.total_pending > 0 ? `
       <div class="card kpi-card pending-revenue-card">
         <i class="fas fa-hand-holding-usd kpi-icon"></i>
@@ -94,26 +94,36 @@ export async function dashboardPage() {
     ` : '';
     document.getElementById('pending-revenue-container').innerHTML = pendingRevHtml;
 
-    // 3. Status Distribution Chart
+    // ---------- Now wait for the remaining sections ----------
+    const [upcomingReviews, overdueReviews, statusDist, counties, projects, forSale] = await Promise.all([
+      upcomingReviewsPromise,
+      overdueReviewsPromise,
+      statusDistPromise,
+      countiesPromise,
+      projectsPromise,
+      forSalePromise
+    ]);
+
+    // Status Distribution Chart
     renderStatusChart(statusDist);
 
-    // 4. Overdue Reviews
+    // Overdue Reviews
     const overdueHtml = renderOverdueReviews(overdueReviews);
     document.getElementById('overdue-reviews-container').innerHTML = overdueHtml || '';
 
-    // 5. Upcoming Reviews
+    // Upcoming Reviews
     const upcomingHtml = renderUpcomingReviews(upcomingReviews);
     document.getElementById('reviews-container').innerHTML = upcomingHtml || '<p class="empty-state"><i class="fas fa-check-circle"></i> No upcoming reviews</p>';
 
-    // 6. County Breakdown
+    // County Breakdown
     const countyHtml = renderCountyBreakdown(counties);
     document.getElementById('county-breakdown-container').innerHTML = countyHtml || '<p class="empty-state"><i class="fas fa-map-marker-alt"></i> No location data</p>';
 
-    // 7. Projects for Sale
+    // Projects for Sale
     const forSaleHtml = renderForSaleProjects(forSale);
     document.getElementById('for-sale-container').innerHTML = forSaleHtml;
 
-    // 8. Recent Projects
+    // Recent Projects
     const recent = projects.slice(0, 5);
     const recentList = document.getElementById('recent-projects-list');
     recentList.innerHTML = recent.length
@@ -182,7 +192,7 @@ export async function dashboardPage() {
   });
 }
 
-// ===== Helper renderers =====
+// ===== Helper renderers (unchanged) =====
 
 function renderClickableKPIs(data) {
   return `
