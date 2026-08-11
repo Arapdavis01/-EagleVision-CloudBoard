@@ -19,6 +19,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors);
+app.options('*', cors);   // <-- ADD THIS LINE to handle preflight requests
 app.use(express.json());
 app.use(cookieParser());
 
