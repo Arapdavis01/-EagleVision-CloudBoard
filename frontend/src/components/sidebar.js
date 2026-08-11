@@ -1,5 +1,7 @@
 import { authService } from '../services/authService.js';
 
+let sidebarInitialized = false;   // prevent duplicate listener bindings
+
 export function renderSidebar() {
   return `
     <div class="sidebar">
@@ -14,15 +16,20 @@ export function renderSidebar() {
 }
 
 export function initSidebar() {
+  // Highlight current page
   const currentPage = location.hash.replace('#', '') || 'dashboard';
   document.querySelectorAll('.nav-link').forEach(link => {
     link.classList.toggle('active', link.dataset.page === currentPage);
   });
 
+  // Bind logout only once
+  if (sidebarInitialized) return;
+  sidebarInitialized = true;
+
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
-      authService.logout(); // This now clears token + redirects to #login
+      authService.logout();   // clears token, removes app-dashboard class, redirects to #login
     });
   }
 }
