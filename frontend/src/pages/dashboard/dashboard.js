@@ -2,7 +2,7 @@ import { renderSidebar, initSidebar } from '../../components/sidebar.js';
 import { dashboardService } from '../../services/dashboardService.js';
 import { projectService } from '../../services/projectService.js';
 import { salesService } from '../../services/salesService.js';
-import { renderKPIs } from '../../components/kpiCards.js';
+import { renderKPIs } from '../../components/kpiCards.js'; // not used directly; we'll use our own render
 import { renderUpcomingReviews } from '../../components/upcomingReviews.js';
 import { showModal } from '../../components/modal.js';
 import { renderProjectForm } from '../../components/projectForm.js';
@@ -27,8 +27,10 @@ export async function dashboardPage() {
         </div>
       </div>
 
-      <!-- KPI Cards -->
-      <div id="kpi-container"></div>
+      <!-- KPI Cards – rendered immediately with placeholders -->
+      <div id="kpi-container">
+        ${renderPlaceholderKPIs()}
+      </div>
 
       <!-- Pending Revenue Card (only if > 0) -->
       <div id="pending-revenue-container"></div>
@@ -67,9 +69,9 @@ export async function dashboardPage() {
   const escapeHtml = (text) =>
     text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 
-  // Progressive loading – show KPIs immediately, then load the rest
+  // Load all data asynchronously and update the existing containers
   async function refreshDashboard() {
-    // Fire all requests at once
+    // Start all API calls
     const kpiPromise = dashboardService.getKPIs();
     const pendingRevenuePromise = dashboardService.getPendingRevenue().catch(() => ({ total_pending: 0 }));
     const upcomingReviewsPromise = dashboardService.getUpcomingReviews().catch(() => []);
@@ -79,22 +81,24 @@ export async function dashboardPage() {
     const projectsPromise = projectService.getAll();
     const forSalePromise = dashboardService.getForSaleProjects().catch(() => []);
 
-    // ---------- Render KPIs as soon as they arrive ----------
-    const kpis = await kpiPromise;
-    document.getElementById('kpi-container').innerHTML = renderClickableKPIs(kpis);
+    // Update KPIs as soon as they arrive
+    kpiPromise.then(kpis => {
+      document.getElementById('kpi-container').innerHTML = renderClickableKPIs(kpis);
+    });
 
-    // ---------- Render Pending Revenue (also fast) ----------
-    const pendingRevenue = await pendingRevenuePromise;
-    const pendingRevHtml = pendingRevenue.total_pending > 0 ? `
-      <div class="card kpi-card pending-revenue-card">
-        <i class="fas fa-hand-holding-usd kpi-icon"></i>
-        <h3>Pending Revenue (For Sale)</h3>
-        <div class="value">$${pendingRevenue.total_pending.toLocaleString()}</div>
-      </div>
-    ` : '';
-    document.getElementById('pending-revenue-container').innerHTML = pendingRevHtml;
+    // Update pending revenue card (appears only if > 0)
+    pendingRevenuePromise.then(pendingRevenue => {
+      const html = pendingRevenue.total_pending > 0 ? `
+        <div class="card kpi-card pending-revenue-card">
+          <i class="fas fa-hand-holding-usd kpi-icon"></i>
+          <h3>Pending Revenue (For Sale)</h3>
+          <div class="value">$${pendingRevenue.total_pending.toLocaleString()}</div>
+        </div>
+      ` : '';
+      document.getElementById('pending-revenue-container').innerHTML = html;
+    });
 
-    // ---------- Now wait for the remaining sections ----------
+    // Wait for the rest and render them
     const [upcomingReviews, overdueReviews, statusDist, counties, projects, forSale] = await Promise.all([
       upcomingReviewsPromise,
       overdueReviewsPromise,
@@ -104,7 +108,7 @@ export async function dashboardPage() {
       forSalePromise
     ]);
 
-    // Status Distribution Chart
+    // Chart
     renderStatusChart(statusDist);
 
     // Overdue Reviews
@@ -139,12 +143,12 @@ export async function dashboardPage() {
     document.getElementById('project-count').textContent = `${projects.length} total`;
   }
 
-  // Initial load
-  await refreshDashboard();
+  // Start loading immediately (no await, so UI is not blocked)
+  refreshDashboard();
 
   // --- Event Listeners ---
 
-  // Clickable KPI cards
+  // Clickable KPI cards (delegated)
   document.getElementById('kpi-container').addEventListener('click', (e) => {
     const card = e.target.closest('.clickable');
     if (!card) return;
@@ -164,7 +168,7 @@ export async function dashboardPage() {
         await projectService.create(data);
         close();
         showToast('Project created', 'success');
-        await refreshDashboard();
+        refreshDashboard();  // refresh data (KPI, etc.)
       } catch (err) {
         showToast(err.message, 'error');
       }
@@ -184,7 +188,7 @@ export async function dashboardPage() {
         await salesService.create(data);
         close();
         showToast('Sale recorded', 'success');
-        await refreshDashboard();
+        refreshDashboard();
       } catch (err) {
         showToast(err.message, 'error');
       }
@@ -192,8 +196,35 @@ export async function dashboardPage() {
   });
 }
 
-// ===== Helper renderers (unchanged) =====
+// ===== Placeholder KPI cards (shown instantly) =====
+function renderPlaceholderKPIs() {
+  return `
+    <div class="kpi-grid">
+      <div class="card kpi-card clickable" data-filter="all">
+        <i class="fas fa-folder-open kpi-icon"></i>
+        <h3>Total Projects</h3>
+        <div class="value">--</div>
+      </div>
+      <div class="card kpi-card clickable" data-filter="live">
+        <i class="fas fa-rocket kpi-icon"></i>
+        <h3>Live Projects</h3>
+        <div class="value">--</div>
+      </div>
+      <div class="card kpi-card clickable" data-filter="clients">
+        <i class="fas fa-users kpi-icon"></i>
+        <h3>Active Clients</h3>
+        <div class="value">--</div>
+      </div>
+      <div class="card kpi-card clickable" data-filter="revenue">
+        <i class="fas fa-dollar-sign kpi-icon"></i>
+        <h3>Total Revenue</h3>
+        <div class="value">--</div>
+      </div>
+    </div>
+  `;
+}
 
+// ===== Real KPI cards (replace placeholders) =====
 function renderClickableKPIs(data) {
   return `
     <div class="kpi-grid">
@@ -221,14 +252,13 @@ function renderClickableKPIs(data) {
   `;
 }
 
+// ===== Chart, reviews, counties, for-sale helpers (identical to your previous code) =====
+
 function renderStatusChart(distribution) {
   if (!distribution || distribution.length === 0) return;
-
   const ctx = document.getElementById('statusChartCanvas')?.getContext('2d');
   if (!ctx) return;
-
   if (statusChart) statusChart.destroy();
-
   const labels = distribution.map(d => d.status);
   const counts = distribution.map(d => parseInt(d.count));
   const colors = {
@@ -238,7 +268,6 @@ function renderStatusChart(distribution) {
     'Maintenance': '#8b5cf6',
     'Archived': '#6b7280'
   };
-
   statusChart = new Chart(ctx, {
     type: 'doughnut',
     data: {
@@ -263,7 +292,6 @@ function renderStatusChart(distribution) {
 
 function renderOverdueReviews(overdue) {
   if (!overdue || overdue.length === 0) return '';
-
   const now = new Date();
   return `
     <div class="card overdue-card" style="border-left: 4px solid #ef4444; margin-bottom: 2rem;">
@@ -291,7 +319,6 @@ function renderOverdueReviews(overdue) {
 
 function renderCountyBreakdown(counties) {
   if (!counties || counties.length === 0) return '';
-
   return `
     <h3><i class="fas fa-map-marker-alt"></i> Top Counties</h3>
     <ul class="county-list">
@@ -312,7 +339,6 @@ function renderForSaleProjects(forSale) {
       <p class="empty-state"><i class="fas fa-info-circle"></i> No projects marked for sale</p>
     `;
   }
-
   return `
     <h3><i class="fas fa-tag"></i> Projects for Sale</h3>
     <ul class="for-sale-list">
