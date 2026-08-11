@@ -861,6 +861,24 @@ body.modal-open {
   color: var(--text);
 }
 
+/* Form header – modal title */
+.form-header {
+  margin-bottom: 1.2rem;
+}
+.form-header h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Form actions – Back + Save buttons */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  margin-top: 1.5rem;
+}
+
 /* ================================================================
    DASHBOARD THEME (green + gold, glass‑morphism, sidebar layout)
    All styles below are applied only when body has class .app-dashboard
