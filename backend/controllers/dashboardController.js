@@ -74,3 +74,15 @@ exports.countyBreakdown = async (req, res) => {
   );
   res.json(rows);
 };
+
+// 5. Projects marked for sale (for dashboard)
+exports.forSaleProjects = async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT id, name, client, asking_price, status
+     FROM projects
+     WHERE for_sale = true
+     ORDER BY asking_price DESC NULLS LAST
+     LIMIT 5`
+  );
+  res.json(rows);
+};
