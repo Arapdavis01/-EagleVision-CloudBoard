@@ -10,16 +10,51 @@ export async function projectsPage() {
   app.innerHTML = `
     ${renderSidebar()}
     <div class="main-content">
-      <h2>Projects</h2>
+      <div class="projects-header">
+        <h2>Projects</h2>
+        <button id="add-project-btn" class="btn btn-primary"><i class="fas fa-plus"></i> Add Project</button>
+      </div>
+
+      <!-- Filter bar: status pills -->
+      <div class="filter-bar">
+        <button class="filter-pill active" data-status="all">All</button>
+        <button class="filter-pill" data-status="Planning">Planning</button>
+        <button class="filter-pill" data-status="Development">Development</button>
+        <button class="filter-pill" data-status="Live">Live</button>
+        <button class="filter-pill" data-status="Maintenance">Maintenance</button>
+        <button class="filter-pill" data-status="Archived">Archived</button>
+      </div>
+
+      <!-- Toolbar: search, sort, view toggle -->
       <div class="toolbar">
-        <input type="text" id="search" placeholder="Search...">
-        <button id="add-project-btn" class="btn"><i class="fas fa-plus"></i> Add Project</button>
+        <input type="text" id="search" placeholder="Search by name, client, or tags...">
+        <select id="sort-select" class="sort-select">
+          <option value="name-asc">Name A–Z</option>
+          <option value="name-desc">Name Z–A</option>
+          <option value="client-asc">Client A–Z</option>
+          <option value="client-desc">Client Z–A</option>
+          <option value="updated-desc">Last Updated (newest)</option>
+          <option value="updated-asc">Last Updated (oldest)</option>
+        </select>
         <div class="view-toggle">
           <button class="btn view-grid active" data-view="grid"><i class="fas fa-th-large"></i> Grid</button>
           <button class="btn view-list" data-view="list"><i class="fas fa-list"></i> List</button>
         </div>
       </div>
-      <div id="projects-container" class="projects-grid"></div>
+
+      <!-- Loading skeleton (shown initially) -->
+      <div id="loading-skeleton" class="projects-grid">
+        ${renderSkeletonCards(6)}
+      </div>
+
+      <!-- Projects container (hidden until data loads) -->
+      <div id="projects-container" class="projects-grid hidden"></div>
+
+      <!-- Empty state (hidden by default) -->
+      <div id="empty-state" class="empty-state hidden">
+        <i class="fas fa-folder-open fa-3x"></i>
+        <p>No projects found.</p>
+      </div>
     </div>
   `;
 
@@ -28,37 +63,88 @@ export async function projectsPage() {
   // --- State ---
   let currentView = 'grid';
   let projects = [];
-  let activeFilter = '';
+  let currentStatus = 'all';
+  let currentSort = 'name-asc';
+  let searchTerm = '';
 
-  // --- Read filter from URL hash ---
+  // Read optional URL filter (from dashboard click)
   const hash = location.hash.split('?')[1] || '';
   const params = new URLSearchParams(hash);
-  activeFilter = params.get('filter') || '';   // 'all', 'live', 'clients', 'revenue'
+  const urlFilter = params.get('filter');
+  if (urlFilter === 'live') currentStatus = 'Live';
+  else if (urlFilter === 'clients') currentStatus = 'all'; // or show a clients modal later
+  else if (urlFilter === 'revenue') { location.hash = '#finance'; return; }
 
+  // --- DOM elements ---
   const searchInput = document.getElementById('search');
-  const addBtn = document.getElementById('add-project-btn');
+  const sortSelect = document.getElementById('sort-select');
   const container = document.getElementById('projects-container');
+  const skeleton = document.getElementById('loading-skeleton');
+  const emptyState = document.getElementById('empty-state');
   const viewGridBtn = document.querySelector('.view-grid');
   const viewListBtn = document.querySelector('.view-list');
+  const filterPills = document.querySelectorAll('.filter-pill');
 
-  // --- Load projects (with optional search and filter) ---
+  // --- Loading skeleton helper ---
+  function renderSkeletonCards(count) {
+    return Array(count).fill().map(() => `
+      <div class="card skeleton-card">
+        <div class="skeleton skeleton-title"></div>
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-badge"></div>
+      </div>
+    `).join('');
+  }
+
+  // --- Load projects ---
   async function loadProjects(search = '') {
+    skeleton.classList.remove('hidden');
+    container.classList.add('hidden');
+    emptyState.classList.add('hidden');
+
     projects = await projectService.getAll(search);
 
-    // Apply client‑side filter based on URL parameter
-    if (activeFilter === 'live') {
-      projects = projects.filter(p => p.status === 'Live');
-    } else if (activeFilter === 'revenue') {
-      // Redirect to finance – no need to show projects
-      location.hash = '#finance';
-      return;
-    } else if (activeFilter === 'clients') {
-      // Could show a modal with distinct clients; for now just show all
-      // (you can add a clients modal later)
+    // Apply status filter
+    if (currentStatus !== 'all') {
+      projects = projects.filter(p => p.status === currentStatus);
     }
-    // 'all' or empty shows everything
 
+    // Apply sort
+    sortProjects();
+
+    // Show/hide empty state
+    if (projects.length === 0) {
+      emptyState.classList.remove('hidden');
+    } else {
+      emptyState.classList.add('hidden');
+    }
+
+    // Render
     renderProjects();
+    skeleton.classList.add('hidden');
+    container.classList.remove('hidden');
+  }
+
+  // --- Sort projects ---
+  function sortProjects() {
+    projects.sort((a, b) => {
+      const nameA = (a.name || '').toLowerCase();
+      const nameB = (b.name || '').toLowerCase();
+      const clientA = (a.client || '').toLowerCase();
+      const clientB = (b.client || '').toLowerCase();
+      const updatedA = new Date(a.last_updated || 0);
+      const updatedB = new Date(b.last_updated || 0);
+
+      switch (currentSort) {
+        case 'name-asc': return nameA.localeCompare(nameB);
+        case 'name-desc': return nameB.localeCompare(nameA);
+        case 'client-asc': return clientA.localeCompare(clientB);
+        case 'client-desc': return clientB.localeCompare(clientA);
+        case 'updated-desc': return updatedB - updatedA;
+        case 'updated-asc': return updatedA - updatedB;
+        default: return 0;
+      }
+    });
   }
 
   // --- Render project cards ---
@@ -67,7 +153,7 @@ export async function projectsPage() {
     container.innerHTML = projects.map(p => renderProjectCard(p, currentView)).join('');
   }
 
-  // --- Event delegation for project card actions ---
+  // --- Event delegation for project actions ---
   container.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
     if (!btn) return;
@@ -81,10 +167,43 @@ export async function projectsPage() {
       handleDelete(projectId);
     } else if (btn.classList.contains('copy-link')) {
       handleCopyLink(btn.dataset.token);
+    } else if (btn.classList.contains('quick-view-project')) {
+      handleQuickView(projectId);
     }
   });
 
-  // --- Edit project handler (with Back button support) ---
+  // --- Quick View Modal ---
+  function handleQuickView(projectId) {
+    const project = projects.find(p => p.id == projectId);
+    if (!project) return showToast('Project not found', 'error');
+
+    const techStack = project.tech_stack ? JSON.parse(project.tech_stack).join(', ') : '—';
+    const tags = project.tags ? project.tags : '—';
+    const content = `
+      <div class="modal-header-bar">
+        <h2><i class="fas fa-info-circle"></i> ${escapeHtml(project.name)}</h2>
+        <span class="status ${project.status.toLowerCase()}">${project.status}</span>
+      </div>
+      <div class="quick-view-grid">
+        <div><strong>Client:</strong> ${escapeHtml(project.client) || '—'}</div>
+        <div><strong>Location:</strong> ${escapeHtml(project.location) || '—'}</div>
+        <div><strong>Live URL:</strong> <a href="${escapeHtml(project.live_url)}" target="_blank">${escapeHtml(project.live_url) || '—'}</a></div>
+        <div><strong>GitHub:</strong> <a href="${escapeHtml(project.github)}" target="_blank">${escapeHtml(project.github) || '—'}</a></div>
+        <div><strong>Hosting:</strong> ${escapeHtml(project.hosting) || '—'}</div>
+        <div><strong>Tech Stack:</strong> ${techStack}</div>
+        <div><strong>Tags:</strong> ${tags}</div>
+        <div><strong>Last Updated:</strong> ${project.last_updated ? new Date(project.last_updated).toLocaleString() : '—'}</div>
+        <div><strong>Next Review:</strong> ${project.next_review_date ? new Date(project.next_review_date).toLocaleDateString() : '—'}</div>
+      </div>
+      <div class="form-group">
+        <strong>Description:</strong>
+        <p>${escapeHtml(project.description) || 'No description.'}</p>
+      </div>
+    `;
+    showModal(content);
+  }
+
+  // --- Edit handler ---
   async function handleEdit(projectId) {
     const project = projects.find(p => p.id == projectId);
     if (!project) return showToast('Project not found', 'error');
@@ -93,11 +212,8 @@ export async function projectsPage() {
     const form = document.getElementById('project-form');
     if (!form) return;
 
-    // ✅ Back button closes the modal
     const cancelBtn = document.querySelector('.cancel-form-btn');
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', () => close());
-    }
+    if (cancelBtn) cancelBtn.addEventListener('click', () => close());
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -114,7 +230,7 @@ export async function projectsPage() {
     });
   }
 
-  // --- Delete project handler ---
+  // --- Delete handler ---
   async function handleDelete(projectId) {
     if (!confirm('Delete this project?')) return;
     try {
@@ -126,7 +242,7 @@ export async function projectsPage() {
     }
   }
 
-  // --- Copy public link handler ---
+  // --- Copy link handler ---
   function handleCopyLink(token) {
     if (!token) {
       showToast('No public link available', 'error');
@@ -138,17 +254,14 @@ export async function projectsPage() {
       .catch(() => showToast('Failed to copy', 'error'));
   }
 
-  // --- Add Project button (with Back button support) ---
-  addBtn.addEventListener('click', () => {
+  // --- Add Project button ---
+  document.getElementById('add-project-btn').addEventListener('click', () => {
     const { close } = showModal(renderProjectForm());
     const form = document.getElementById('project-form');
     if (!form) return;
 
-    // ✅ Back button closes the modal
     const cancelBtn = document.querySelector('.cancel-form-btn');
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', () => close());
-    }
+    if (cancelBtn) cancelBtn.addEventListener('click', () => close());
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -168,7 +281,24 @@ export async function projectsPage() {
   // --- Search input ---
   searchInput.addEventListener('input', (e) => loadProjects(e.target.value));
 
-  // --- View toggle (Grid/List) ---
+  // --- Sort select ---
+  sortSelect.addEventListener('change', (e) => {
+    currentSort = e.target.value;
+    sortProjects();
+    renderProjects();
+  });
+
+  // --- Filter pills ---
+  filterPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      filterPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      currentStatus = pill.dataset.status;
+      loadProjects(searchInput.value);
+    });
+  });
+
+  // --- View toggle ---
   viewGridBtn.addEventListener('click', () => {
     currentView = 'grid';
     viewGridBtn.classList.add('active');
