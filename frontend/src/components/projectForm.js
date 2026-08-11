@@ -20,6 +20,17 @@ export function renderProjectForm(project = {}) {
           ${['Planning','Development','Live','Maintenance','Archived'].map(s => `<option value="${s}" ${project.status === s ? 'selected' : ''}>${s}</option>`).join('')}
         </select>
       </label>
+
+      <hr>
+      <h3>Sale Opportunity</h3>
+      <label>
+        <input type="checkbox" name="for_sale" value="true" ${project.for_sale ? 'checked' : ''}>
+        Mark as For Sale
+      </label>
+      <label>Asking Price ($): 
+        <input type="number" name="asking_price" step="0.01" value="${project.asking_price || ''}">
+      </label>
+
       <button type="submit" class="btn">Save</button>
     </form>
   `;
