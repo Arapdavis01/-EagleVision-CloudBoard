@@ -63,6 +63,21 @@ export async function projectsPage() {
 
   initSidebar();
 
+  // ============================================================
+  //  IMPORTANT: define escapeHtml & parseTechStack BEFORE any usage
+  // ============================================================
+  const escapeHtml = (text) =>
+    text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+
+  const parseTechStack = (tech) => {
+    if (!tech) return [];
+    if (Array.isArray(tech)) return tech;
+    if (typeof tech === 'string') {
+      try { return JSON.parse(tech); } catch (e) { return []; }
+    }
+    return [];
+  };
+
   // --- State ---
   let currentView = 'grid';
   let projects = [];
@@ -101,12 +116,10 @@ export async function projectsPage() {
 
   // --- Load projects ---
   async function loadProjects(search = '') {
-    // Show skeleton, hide content and empty state
     skeleton.classList.remove('hidden');
     container.classList.add('hidden');
     emptyState.classList.add('hidden');
 
-    // Fetch projects with error handling
     try {
       projects = await projectService.getAll(search);
     } catch (err) {
@@ -115,25 +128,19 @@ export async function projectsPage() {
       projects = [];
     }
 
-    // Apply status filter
     if (currentStatus !== 'all') {
       projects = projects.filter(p => p.status === currentStatus);
     }
 
-    // Apply sort
     sortProjects();
 
-    // Show/hide empty state
     if (projects.length === 0) {
       emptyState.classList.remove('hidden');
     } else {
       emptyState.classList.add('hidden');
     }
 
-    // Render
     renderProjects();
-
-    // Hide skeleton, show container
     skeleton.classList.add('hidden');
     container.classList.remove('hidden');
   }
@@ -185,17 +192,18 @@ export async function projectsPage() {
     }
   });
 
-  // --- Quick View Modal ---
+  // --- Quick View Modal (uses parseTechStack + escapeHtml – both defined above) ---
   function handleQuickView(projectId) {
     const project = projects.find(p => p.id == projectId);
     if (!project) return showToast('Project not found', 'error');
 
-    const techStack = project.tech_stack ? JSON.parse(project.tech_stack).join(', ') : '—';
+    const techList = parseTechStack(project.tech_stack);
+    const techStack = techList.length ? techList.join(', ') : '—';
     const tags = project.tags ? project.tags : '—';
     const content = `
       <div class="modal-header-bar">
         <h2><i class="fas fa-info-circle"></i> ${escapeHtml(project.name)}</h2>
-        <span class="status ${project.status.toLowerCase()}">${project.status}</span>
+        <span class="status ${(project.status || '').toLowerCase()}">${project.status || '—'}</span>
       </div>
       <div class="quick-view-grid">
         <div><strong>Client:</strong> ${escapeHtml(project.client) || '—'}</div>
