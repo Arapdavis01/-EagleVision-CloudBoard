@@ -1304,3 +1304,153 @@ body.app-dashboard .empty-state.small {
     grid-template-columns: 1fr;
   }
 }
+/* ================================================================
+   PROJECTS PAGE – MODERN ENHANCEMENTS
+   ================================================================ */
+
+/* Projects page header */
+.projects-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.projects-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Filter pills */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.filter-pill {
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  border: 1px solid var(--app-glass-border);
+  background: rgba(255,255,255,0.6);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  color: var(--text);
+}
+.filter-pill.active,
+.filter-pill:hover {
+  background: var(--app-primary);
+  color: white;
+  border-color: var(--app-primary);
+}
+
+/* Sort select */
+.sort-select {
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--app-glass-border);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.8);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* Skeleton loading */
+.skeleton-card {
+  padding: 1.5rem;
+}
+.skeleton {
+  background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+.skeleton-title { height: 1.2rem; width: 60%; }
+.skeleton-text  { height: 0.8rem; width: 80%; }
+.skeleton-badge { height: 1.5rem; width: 40%; }
+
+/* Enhanced project card (grid) */
+.project-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.project-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.project-client,
+.project-location {
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+.project-tech,
+.project-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.tech-badge {
+  background: rgba(26,71,42,0.1);
+  color: var(--app-primary);
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.tag-badge {
+  background: rgba(196,154,43,0.1);
+  color: var(--app-secondary);
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* List view row */
+.project-list-row {
+  padding: 0.8rem 1rem;
+}
+.list-row-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.list-name {
+  font-weight: 600;
+  min-width: 150px;
+}
+.list-client {
+  color: var(--text-light);
+  min-width: 120px;
+}
+.list-location {
+  color: var(--text-light);
+  min-width: 100px;
+}
+.list-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.3rem;
+}
+
+/* Quick view modal grid */
+.quick-view-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+.quick-view-grid div {
+  font-size: 0.9rem;
+}
+.quick-view-grid strong {
+  display: block;
+  color: var(--app-primary);
+  font-size: 0.8rem;
+  margin-bottom: 0.1rem;
+}
