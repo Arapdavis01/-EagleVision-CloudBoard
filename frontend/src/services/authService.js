@@ -13,14 +13,12 @@ export const authService = {
   },
   logout: async () => {
     try {
-      // Call server to clear cookie (token still present for auth)
       await api('/api/auth/logout', { method: 'POST' });
     } catch (err) {
-      // Even if server fails, we still want to log out locally
       console.warn('Server logout failed – clearing local session only');
     } finally {
-      // Remove token and redirect instantly
       localStorage.removeItem('token');
+      document.body.classList.remove('app-dashboard');   // 🔥 remove green/gold theme
       location.hash = '#login';
     }
   },
