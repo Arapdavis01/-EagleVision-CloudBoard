@@ -1016,6 +1016,35 @@ body.app-dashboard .kpi-card .value {
   color: white;
 }
 
+/* Summary tables inside KPI modals */
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+}
+.summary-table th {
+  background: linear-gradient(135deg, rgba(26,71,42,0.05), rgba(196,154,43,0.05));
+  color: var(--app-primary);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--app-glass-border);
+}
+.summary-table td {
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  color: var(--text);
+}
+.summary-table tr:last-child td {
+  border-bottom: none;
+}
+.summary-table tfoot td {
+  font-weight: 700;
+  background: rgba(26,71,42,0.03);
+}
 /* ====== Buttons in dashboard – green gradient + ripple ====== */
 body.app-dashboard .btn {
   position: relative;
