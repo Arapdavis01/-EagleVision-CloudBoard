@@ -12,6 +12,9 @@ import { showToast } from '../../utils/notifications.js';
 let statusChart = null;
 
 export async function dashboardPage() {
+  // ✅ Activate the green/gold glass‑morphism theme
+  document.body.classList.add('app-dashboard');
+
   const app = document.getElementById('app');
   app.innerHTML = `
     ${renderSidebar()}
@@ -70,7 +73,7 @@ export async function dashboardPage() {
       await Promise.all([
         dashboardService.getKPIs(),
         dashboardService.getUpcomingReviews(),
-        dashboardService.getOverdueReviews().catch(() => []), // fallback if endpoint not ready
+        dashboardService.getOverdueReviews().catch(() => []),
         dashboardService.getStatusDistribution().catch(() => []),
         dashboardService.getPendingRevenue().catch(() => ({ total_pending: 0 })),
         dashboardService.getCountyBreakdown().catch(() => []),
@@ -81,7 +84,7 @@ export async function dashboardPage() {
     // 1. KPI Cards (clickable)
     document.getElementById('kpi-container').innerHTML = renderClickableKPIs(kpis);
 
-    // 2. Pending Revenue (show only if > 0)
+    // 2. Pending Revenue
     const pendingRevHtml = pendingRevenue.total_pending > 0 ? `
       <div class="card kpi-card pending-revenue-card">
         <i class="fas fa-hand-holding-usd kpi-icon"></i>
