@@ -1,37 +1,119 @@
 export function renderProjectForm(project = {}) {
-  // returns HTML string for add/edit form
   return `
     <h2>${project.id ? 'Edit Project' : 'Add Project'}</h2>
-    <form id="project-form">
+    <form id="project-form" class="modern-form">
       <input type="hidden" name="id" value="${project.id || ''}">
-      <label>Name: <input name="name" value="${project.name || ''}" required></label>
-      <label>Client: <input name="client" value="${project.client || ''}"></label>
-      <label>Live URL: <input name="live_url" value="${project.live_url || ''}"></label>
-      <label>GitHub: <input name="github" value="${project.github || ''}"></label>
-      <label>Hosting: <input name="hosting" value="${project.hosting || ''}"></label>
-      <label>Location: <input name="location" value="${project.location || ''}"></label>
-      <label>Description: <textarea name="description">${project.description || ''}</textarea></label>
-      <label>Tech Stack (JSON): <input name="tech_stack" value='${project.tech_stack ? JSON.stringify(project.tech_stack) : ''}'></label>
-      <label>Tags: <input name="tags" value="${project.tags || ''}"></label>
-      <label>Next Review Date: <input type="date" name="next_review_date" value="${project.next_review_date || ''}"></label>
-      <label>Thumbnail URL: <input name="thumbnail_url" value="${project.thumbnail_url || ''}"></label>
-      <label>Status:
-        <select name="status">
-          ${['Planning','Development','Live','Maintenance','Archived'].map(s => `<option value="${s}" ${project.status === s ? 'selected' : ''}>${s}</option>`).join('')}
-        </select>
-      </label>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="project-name">Name <span class="required">*</span></label>
+          <input id="project-name" name="name" value="${escapeAttr(project.name) || ''}" required placeholder="e.g., E‑portfolio">
+        </div>
+        <div class="form-group">
+          <label for="project-client">Client</label>
+          <input id="project-client" name="client" value="${escapeAttr(project.client) || ''}" placeholder="Client name or company">
+        </div>
+      </div>
 
-      <hr>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="project-live-url">Live URL</label>
+          <input id="project-live-url" name="live_url" value="${escapeAttr(project.live_url) || ''}" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label for="project-github">GitHub</label>
+          <input id="project-github" name="github" value="${escapeAttr(project.github) || ''}" placeholder="https://github.com/...">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="project-hosting">Hosting</label>
+          <input id="project-hosting" name="hosting" value="${escapeAttr(project.hosting) || ''}" placeholder="e.g., Render, Vercel">
+        </div>
+        <div class="form-group">
+          <label for="project-location">Location (County)</label>
+          <input id="project-location" name="location" list="counties-list" value="${escapeAttr(project.location) || ''}" placeholder="Search county...">
+          <datalist id="counties-list">
+            ${COUNTIES.map(c => `<option value="${c}">`).join('')}
+          </datalist>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="project-description">Description</label>
+        <textarea id="project-description" name="description" rows="3" placeholder="Brief description of the project">${escapeHtml(project.description) || ''}</textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="project-tech-stack">Tech Stack (JSON)</label>
+          <input id="project-tech-stack" name="tech_stack" value='${project.tech_stack ? JSON.stringify(project.tech_stack) : ''}' placeholder='["React", "Node.js"]'>
+        </div>
+        <div class="form-group">
+          <label for="project-tags">Tags</label>
+          <input id="project-tags" name="tags" value="${escapeAttr(project.tags) || ''}" placeholder="comma, separated">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="project-next-review">Next Review Date</label>
+          <input type="date" id="project-next-review" name="next_review_date" value="${project.next_review_date || ''}">
+        </div>
+        <div class="form-group">
+          <label for="project-thumbnail">Thumbnail URL</label>
+          <input id="project-thumbnail" name="thumbnail_url" value="${escapeAttr(project.thumbnail_url) || ''}" placeholder="https://...">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="project-status">Status</label>
+          <select id="project-status" name="status">
+            ${['Planning','Development','Live','Maintenance','Archived'].map(s => `
+              <option value="${s}" ${project.status === s ? 'selected' : ''}>${s}</option>
+            `).join('')}
+          </select>
+        </div>
+        <div class="form-group"></div> <!-- empty for grid alignment -->
+      </div>
+
+      <hr class="form-divider">
       <h3>Sale Opportunity</h3>
-      <label>
-        <input type="checkbox" name="for_sale" value="true" ${project.for_sale ? 'checked' : ''}>
-        Mark as For Sale
-      </label>
-      <label>Asking Price ($): 
-        <input type="number" name="asking_price" step="0.01" value="${project.asking_price || ''}">
-      </label>
+      <div class="form-row">
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" name="for_sale" value="true" ${project.for_sale ? 'checked' : ''}>
+            Mark as For Sale
+          </label>
+        </div>
+        <div class="form-group">
+          <label for="project-asking-price">Asking Price ($)</label>
+          <input type="number" id="project-asking-price" name="asking_price" step="0.01" value="${project.asking_price || ''}" placeholder="0.00">
+        </div>
+      </div>
 
-      <button type="submit" class="btn">Save</button>
+      <button type="submit" class="btn btn-primary btn-block"><i class="fas fa-save"></i> Save</button>
     </form>
   `;
 }
+
+// Helper functions
+function escapeAttr(str) {
+  return str ? str.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+}
+function escapeHtml(str) {
+  return str ? str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+}
+
+// All 47 Kenya counties
+const COUNTIES = [
+  "Baringo", "Bomet", "Bungoma", "Busia", "Elgeyo-Marakwet", "Embu", "Garissa", "Homa Bay",
+  "Isiolo", "Kajiado", "Kakamega", "Kericho", "Kiambu", "Kilifi", "Kirinyaga", "Kisii",
+  "Kisumu", "Kitui", "Kwale", "Laikipia", "Lamu", "Machakos", "Makueni", "Mandera",
+  "Marsabit", "Meru", "Migori", "Mombasa", "Murang'a", "Nairobi", "Nakuru", "Nandi",
+  "Narok", "Nyamira", "Nyandarua", "Nyeri", "Samburu", "Siaya", "Taita-Taveta",
+  "Tana River", "Tharaka-Nithi", "Trans Nzoia", "Turkana", "Uasin Gishu", "Vihiga",
+  "Wajir", "West Pokot"
+];
