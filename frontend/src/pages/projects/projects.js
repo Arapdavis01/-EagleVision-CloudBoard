@@ -6,6 +6,9 @@ import { renderProjectForm } from '../../components/projectForm.js';
 import { showToast } from '../../utils/notifications.js';
 
 export async function projectsPage() {
+  // ✅ Activate the green/gold glass‑morphism theme
+  document.body.classList.add('app-dashboard');
+
   const app = document.getElementById('app');
   app.innerHTML = `
     ${renderSidebar()}
@@ -72,7 +75,7 @@ export async function projectsPage() {
   const params = new URLSearchParams(hash);
   const urlFilter = params.get('filter');
   if (urlFilter === 'live') currentStatus = 'Live';
-  else if (urlFilter === 'clients') currentStatus = 'all'; // or show a clients modal later
+  else if (urlFilter === 'clients') currentStatus = 'all';
   else if (urlFilter === 'revenue') { location.hash = '#finance'; return; }
 
   // --- DOM elements ---
@@ -98,11 +101,19 @@ export async function projectsPage() {
 
   // --- Load projects ---
   async function loadProjects(search = '') {
+    // Show skeleton, hide content and empty state
     skeleton.classList.remove('hidden');
     container.classList.add('hidden');
     emptyState.classList.add('hidden');
 
-    projects = await projectService.getAll(search);
+    // Fetch projects with error handling
+    try {
+      projects = await projectService.getAll(search);
+    } catch (err) {
+      console.error('Failed to load projects:', err);
+      showToast('Failed to load projects. Check connection.', 'error');
+      projects = [];
+    }
 
     // Apply status filter
     if (currentStatus !== 'all') {
@@ -121,6 +132,8 @@ export async function projectsPage() {
 
     // Render
     renderProjects();
+
+    // Hide skeleton, show container
     skeleton.classList.add('hidden');
     container.classList.remove('hidden');
   }
