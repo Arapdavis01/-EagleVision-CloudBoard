@@ -21,8 +21,56 @@ exports.upcomingReviews = async (req, res) => {
      FROM projects
      WHERE next_review_date IS NOT NULL
        AND next_review_date <= CURRENT_DATE + INTERVAL '30 days'
+       AND next_review_date >= CURRENT_DATE
      ORDER BY next_review_date ASC
      LIMIT 10`
+  );
+  res.json(rows);
+};
+
+// 1. Status Distribution (for doughnut chart)
+exports.statusDistribution = async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT status, COUNT(*) as count
+     FROM projects
+     GROUP BY status
+     ORDER BY count DESC`
+  );
+  res.json(rows);
+};
+
+// 2. Pending Revenue (sum of asking_price for projects marked for_sale)
+exports.pendingRevenue = async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT COALESCE(SUM(asking_price),0) as total_pending
+     FROM projects
+     WHERE for_sale = true`
+  );
+  res.json({ total_pending: parseFloat(rows[0].total_pending) });
+};
+
+// 3. Overdue Reviews (next_review_date in the past)
+exports.overdueReviews = async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT id, name, client, next_review_date, status
+     FROM projects
+     WHERE next_review_date IS NOT NULL
+       AND next_review_date < CURRENT_DATE
+     ORDER BY next_review_date ASC
+     LIMIT 5`
+  );
+  res.json(rows);
+};
+
+// 4. County Breakdown (top locations with project count)
+exports.countyBreakdown = async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT location, COUNT(*) as project_count
+     FROM projects
+     WHERE location IS NOT NULL AND location != ''
+     GROUP BY location
+     ORDER BY project_count DESC
+     LIMIT 5`
   );
   res.json(rows);
 };
