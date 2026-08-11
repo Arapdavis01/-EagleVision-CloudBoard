@@ -6,15 +6,23 @@ export const authService = {
       method: 'POST',
       body: JSON.stringify({ email, password })
     });
-    // Store token in localStorage (frontend will send it with every request)
     if (data.token) {
       localStorage.setItem('token', data.token);
     }
     return data;
   },
-  logout: () => {
-    localStorage.removeItem('token');
-    return api('/api/auth/logout', { method: 'POST' });
+  logout: async () => {
+    try {
+      // Call server to clear cookie (token still present for auth)
+      await api('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      // Even if server fails, we still want to log out locally
+      console.warn('Server logout failed – clearing local session only');
+    } finally {
+      // Remove token and redirect instantly
+      localStorage.removeItem('token');
+      location.hash = '#login';
+    }
   },
   checkSession: () => api('/api/auth/session'),
 };
