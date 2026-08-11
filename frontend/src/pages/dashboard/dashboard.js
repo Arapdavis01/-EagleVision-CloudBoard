@@ -106,27 +106,21 @@ export async function dashboardPage() {
 
   // --- Event listeners ---
 
-  // Clickable KPI cards
+  // KPI clicks – open summary modals
   document.getElementById('kpi-container').addEventListener('click', (e) => {
     const card = e.target.closest('.clickable');
     if (!card) return;
-    const filter = card.dataset.filter;
-    location.hash = `#projects?filter=${filter}`;
+    const type = card.dataset.kpiType;
+    if (!type) return;
+    openKpiModal(type);
   });
 
   // Add Project button
   document.getElementById('add-project-btn').addEventListener('click', () => {
     const { close } = showModal(renderProjectForm());
     const form = document.getElementById('project-form');
-
-    // ✅ Back button closes the modal
     const cancelBtn = document.querySelector('.cancel-form-btn');
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', () => {
-        close();
-      });
-    }
-
+    if (cancelBtn) cancelBtn.addEventListener('click', () => close());
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
@@ -163,26 +157,136 @@ export async function dashboardPage() {
   });
 }
 
-// --- Render helpers (unchanged) ---
+// ==================== KPI Modal Openers ====================
+
+async function openKpiModal(type) {
+  switch (type) {
+    case 'projects':
+      await showProjectsSummaryModal();
+      break;
+    case 'overdue':
+      await showOverdueSummaryModal();
+      break;
+    case 'clients':
+      await showClientsSummaryModal();
+      break;
+    case 'revenue':
+      await showRevenueSummaryModal();
+      break;
+  }
+}
+
+async function showProjectsSummaryModal() {
+  const projects = await dashboardService.getProjectsSummary().catch(() => []);
+  const content = `
+    <h2>All Projects</h2>
+    <table class="summary-table">
+      <thead><tr><th>Name</th><th>Client</th><th>Status</th><th>Location</th></tr></thead>
+      <tbody>
+        ${projects.map(p => `<tr>
+          <td>${escapeHtml(p.name)}</td>
+          <td>${escapeHtml(p.client) || '—'}</td>
+          <td><span class="status ${p.status.toLowerCase()}">${p.status}</span></td>
+          <td>${escapeHtml(p.location) || '—'}</td>
+        </tr>`).join('')}
+        ${projects.length === 0 ? '<tr><td colspan="4">No projects found.</td></tr>' : ''}
+      </tbody>
+    </table>
+  `;
+  showModal(content);
+}
+
+async function showOverdueSummaryModal() {
+  const overdue = await dashboardService.getOverdueReviews().catch(() => []);
+  const now = new Date();
+  const content = `
+    <h2>Overdue Reviews</h2>
+    <table class="summary-table">
+      <thead><tr><th>Name</th><th>Client</th><th>Days Overdue</th></tr></thead>
+      <tbody>
+        ${overdue.map(r => {
+          const dueDate = new Date(r.next_review_date);
+          const days = Math.floor((now - dueDate) / (1000 * 60 * 60 * 24));
+          return `<tr>
+            <td>${escapeHtml(r.name)}</td>
+            <td>${escapeHtml(r.client) || '—'}</td>
+            <td><span class="badge badge-overdue">${days} day${days !== 1 ? 's' : ''}</span></td>
+          </tr>`;
+        }).join('')}
+        ${overdue.length === 0 ? '<tr><td colspan="3">No overdue reviews 🎉</td></tr>' : ''}
+      </tbody>
+    </table>
+  `;
+  showModal(content);
+}
+
+async function showClientsSummaryModal() {
+  const clients = await dashboardService.getClientsSummary().catch(() => []);
+  const content = `
+    <h2>Clients</h2>
+    <table class="summary-table">
+      <thead><tr><th>Client</th><th>Projects</th><th>Status</th></tr></thead>
+      <tbody>
+        ${clients.map(c => `<tr>
+          <td>${escapeHtml(c.client)}</td>
+          <td>${c.project_count}</td>
+          <td>${c.is_active ? '<span class="badge badge-upcoming">Active</span>' : '<span class="badge" style="background:#f3f4f6;color:#6b7280;">Inactive</span>'}</td>
+        </tr>`).join('')}
+        ${clients.length === 0 ? '<tr><td colspan="3">No clients yet.</td></tr>' : ''}
+      </tbody>
+    </table>
+  `;
+  showModal(content);
+}
+
+async function showRevenueSummaryModal() {
+  const sales = await dashboardService.getRevenueSummary().catch(() => []);
+  const total = sales.reduce((sum, s) => sum + parseFloat(s.amount), 0);
+  const content = `
+    <h2>Revenue Breakdown</h2>
+    <table class="summary-table">
+      <thead><tr><th>Project</th><th>Amount</th><th>Date</th></tr></thead>
+      <tbody>
+        ${sales.map(s => `<tr>
+          <td>${escapeHtml(s.project_name)}</td>
+          <td>$${parseFloat(s.amount).toLocaleString()}</td>
+          <td>${new Date(s.sale_date).toLocaleDateString()}</td>
+        </tr>`).join('')}
+        ${sales.length === 0 ? '<tr><td colspan="3">No sales recorded yet.</td></tr>' : ''}
+      </tbody>
+      <tfoot>
+        <tr><td colspan="2" style="text-align:right;font-weight:700;">Total Revenue</td><td style="font-weight:700;">$${total.toLocaleString()}</td></tr>
+      </tfoot>
+    </table>
+  `;
+  showModal(content);
+}
+
+// ==================== Helper for escaping ====================
+function escapeHtml(text) {
+  return text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+}
+
+// ==================== Placeholder & Real KPI renderers (UPDATED) ====================
 
 function renderPlaceholderKPIs() {
   return `
-    <div class="card kpi-card clickable compact-kpi" data-filter="all">
+    <div class="card kpi-card clickable compact-kpi" data-kpi-type="projects">
       <i class="fas fa-folder-open kpi-icon"></i>
       <h3>Total Projects</h3>
       <div class="value">--</div>
     </div>
-    <div class="card kpi-card clickable compact-kpi" data-filter="live">
-      <i class="fas fa-rocket kpi-icon"></i>
-      <h3>Live Projects</h3>
+    <div class="card kpi-card clickable compact-kpi" data-kpi-type="overdue">
+      <i class="fas fa-exclamation-circle kpi-icon"></i>
+      <h3>Overdue Reviews</h3>
       <div class="value">--</div>
     </div>
-    <div class="card kpi-card clickable compact-kpi" data-filter="clients">
+    <div class="card kpi-card clickable compact-kpi" data-kpi-type="clients">
       <i class="fas fa-users kpi-icon"></i>
       <h3>Active Clients</h3>
       <div class="value">--</div>
     </div>
-    <div class="card kpi-card clickable compact-kpi" data-filter="revenue">
+    <div class="card kpi-card clickable compact-kpi" data-kpi-type="revenue">
       <i class="fas fa-dollar-sign kpi-icon"></i>
       <h3>Total Revenue</h3>
       <div class="value">--</div>
@@ -192,28 +296,30 @@ function renderPlaceholderKPIs() {
 
 function renderClickableKPIs(data) {
   return `
-    <div class="card kpi-card clickable compact-kpi" data-filter="all">
+    <div class="card kpi-card clickable compact-kpi" data-kpi-type="projects">
       <i class="fas fa-folder-open kpi-icon"></i>
       <h3>Total Projects</h3>
       <div class="value">${data.total_projects}</div>
     </div>
-    <div class="card kpi-card clickable compact-kpi" data-filter="live">
-      <i class="fas fa-rocket kpi-icon"></i>
-      <h3>Live Projects</h3>
-      <div class="value">${data.live_projects}</div>
+    <div class="card kpi-card clickable compact-kpi" data-kpi-type="overdue">
+      <i class="fas fa-exclamation-circle kpi-icon"></i>
+      <h3>Overdue Reviews</h3>
+      <div class="value">${data.overdue_reviews}</div>
     </div>
-    <div class="card kpi-card clickable compact-kpi" data-filter="clients">
+    <div class="card kpi-card clickable compact-kpi" data-kpi-type="clients">
       <i class="fas fa-users kpi-icon"></i>
       <h3>Active Clients</h3>
       <div class="value">${data.active_clients}</div>
     </div>
-    <div class="card kpi-card clickable compact-kpi" data-filter="revenue">
+    <div class="card kpi-card clickable compact-kpi" data-kpi-type="revenue">
       <i class="fas fa-dollar-sign kpi-icon"></i>
       <h3>Total Revenue</h3>
       <div class="value">$${data.total_revenue.toLocaleString()}</div>
     </div>
   `;
 }
+
+// ==================== Chart, reviews, counties, for-sale helpers (unchanged) ====================
 
 function renderStatusChart(distribution) {
   if (!distribution || distribution.length === 0) return;
