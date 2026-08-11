@@ -104,7 +104,9 @@ export async function dashboardPage() {
 
   refreshDashboard();
 
-  // Event listeners (unchanged logic)
+  // --- Event listeners ---
+
+  // Clickable KPI cards
   document.getElementById('kpi-container').addEventListener('click', (e) => {
     const card = e.target.closest('.clickable');
     if (!card) return;
@@ -112,9 +114,19 @@ export async function dashboardPage() {
     location.hash = `#projects?filter=${filter}`;
   });
 
+  // Add Project button
   document.getElementById('add-project-btn').addEventListener('click', () => {
     const { close } = showModal(renderProjectForm());
     const form = document.getElementById('project-form');
+
+    // ✅ Back button closes the modal
+    const cancelBtn = document.querySelector('.cancel-form-btn');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => {
+        close();
+      });
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
@@ -130,6 +142,7 @@ export async function dashboardPage() {
     });
   });
 
+  // Record Sale button
   document.getElementById('record-sale-btn').addEventListener('click', async () => {
     const allProjects = await projectService.getAll();
     const { close } = showModal(renderSaleForm(allProjects));
@@ -150,7 +163,7 @@ export async function dashboardPage() {
   });
 }
 
-// --- Render helpers ---
+// --- Render helpers (unchanged) ---
 
 function renderPlaceholderKPIs() {
   return `
