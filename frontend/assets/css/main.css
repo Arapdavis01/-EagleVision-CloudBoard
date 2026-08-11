@@ -31,14 +31,19 @@ body {
 
 .hidden { display: none !important; }
 
-/* ====== Login Page (Gold/Black Theme) ====== */
+/* ====== Login Page (Gold/Black Theme – Now perfectly centred) ====== */
 .login-wrapper {
-  min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
   padding: 1rem;
+  z-index: 999;  /* keep above any other content on login page */
 }
 
 .login-card {
@@ -50,6 +55,7 @@ body {
   max-width: 420px;
   border: 1px solid #daa520;
   animation: fadeInUp 0.4s ease;
+  /* No extra margin – centering is handled by flex parent */
 }
 
 @keyframes fadeInUp {
