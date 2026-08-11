@@ -1090,3 +1090,118 @@ body.app-dashboard .modal-content textarea:focus {
 body.app-dashboard .form-divider {
   border-color: rgba(26, 71, 42, 0.2);
 }
+
+/* ================================================================
+   COMPACT DASHBOARD LAYOUT (single screen, no scrolling)
+   ================================================================ */
+body.app-dashboard .compact-dashboard {
+  padding: 1.2rem 1.8rem;
+  height: 100vh;                /* lock height to viewport */
+  display: flex;
+  flex-direction: column;
+}
+
+body.app-dashboard .dashboard-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+  margin-bottom: 0.8rem;
+  flex-shrink: 0;               /* don't let rows shrink */
+}
+
+/* KPI cards – force single row */
+body.app-dashboard .kpi-grid {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+  flex-shrink: 0;
+}
+
+body.app-dashboard .compact-kpi {
+  padding: 0.7rem 0.5rem;
+  font-size: 0.9rem;
+}
+body.app-dashboard .compact-kpi .kpi-icon {
+  font-size: 1.4rem;
+  margin-bottom: 0.3rem;
+}
+body.app-dashboard .compact-kpi h3 {
+  font-size: 0.65rem;
+  letter-spacing: 0.2px;
+  margin-bottom: 0.2rem;
+}
+body.app-dashboard .compact-kpi .value {
+  font-size: 1.3rem;
+}
+
+/* Chart and reviews row */
+body.app-dashboard .compact-chart {
+  padding: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+body.app-dashboard .compact-chart h3 {
+  font-size: 0.85rem;
+  margin-bottom: 0.3rem;
+}
+body.app-dashboard .compact-chart canvas {
+  max-height: 140px;
+  width: auto !important;
+}
+
+body.app-dashboard .reviews-card {
+  padding: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-y: auto;             /* scroll inside if many reviews */
+}
+
+body.app-dashboard .reviews-card h4 {
+  font-size: 0.8rem;
+  margin-bottom: 0.2rem;
+}
+
+body.app-dashboard .compact-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.78rem;
+}
+body.app-dashboard .compact-list li {
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+body.app-dashboard .compact-list li:last-child {
+  border-bottom: none;
+}
+
+/* County & For‑Sale row */
+body.app-dashboard .compact-card {
+  padding: 0.7rem;
+}
+body.app-dashboard .compact-card h3 {
+  font-size: 0.85rem;
+  margin-bottom: 0.3rem;
+}
+
+/* Smaller empty states */
+body.app-dashboard .empty-state.small {
+  font-size: 0.8rem;
+  padding: 0.4rem;
+}
+
+/* Responsive – stack on narrow screens */
+@media (max-width: 900px) {
+  body.app-dashboard .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  body.app-dashboard .dashboard-row {
+    grid-template-columns: 1fr;
+  }
+}
