@@ -16,7 +16,6 @@ let expenseChart = null;
 export async function financePage() {
   document.body.classList.add('app-dashboard');
 
-  // Determine active section from hash query
   const hashParams = new URLSearchParams(location.hash.split('?')[1] || '');
   let activeSection = hashParams.get('section') || 'revenue';
 
@@ -34,7 +33,7 @@ export async function financePage() {
         </div>
       </div>
 
-      <!-- Section container (dynamic content) -->
+      <!-- Dynamic section container -->
       <div id="finance-section-container"></div>
     </div>
   `;
@@ -66,7 +65,30 @@ export async function financePage() {
     }
   }
 
-  // ======================= REVENUE SECTION =======================
+  // ==================== PERIOD FILTER HELPER ====================
+  function setPeriodFilter(period, dateFromInput, dateToInput, refreshFn) {
+    const now = new Date();
+    let from = '';
+    let to = '';
+    if (period === 'this-month') {
+      from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+      to = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0,10);
+    } else if (period === 'last-month') {
+      from = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0,10);
+      to = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0,10);
+    } else if (period === 'this-year') {
+      from = `${now.getFullYear()}-01-01`;
+      to = `${now.getFullYear()}-12-31`;
+    } else { // all
+      from = '';
+      to = '';
+    }
+    dateFromInput.value = from;
+    dateToInput.value = to;
+    refreshFn();
+  }
+
+  // ==================== REVENUE SECTION ====================
   function renderRevenueSection() {
     const container = document.getElementById('finance-section-container');
     container.innerHTML = `
@@ -74,19 +96,41 @@ export async function financePage() {
         <button id="record-sale-btn" class="btn btn-primary"><i class="fas fa-plus"></i> Record Sale</button>
         <button id="export-revenue-csv-btn" class="btn btn-outline"><i class="fas fa-download"></i> Export CSV</button>
       </div>
+
+      <!-- Period filter pills -->
+      <div class="filter-bar period-filter-bar">
+        <button class="filter-pill active" data-period="all">All Time</button>
+        <button class="filter-pill" data-period="this-month">This Month</button>
+        <button class="filter-pill" data-period="last-month">Last Month</button>
+        <button class="filter-pill" data-period="this-year">This Year</button>
+      </div>
+
+      <!-- KPI Placeholders -->
       <div id="revenue-kpi-container" class="kpi-grid">
         ${renderRevenuePlaceholderKPIs()}
       </div>
+
+      <!-- Net Income Card -->
+      <div class="card compact-card" style="margin-bottom:1rem;">
+        <h3><i class="fas fa-balance-scale"></i> Net Income (Revenue − Expenses)</h3>
+        <div id="revenue-net-income-value" class="value" style="font-size:1.5rem;">--</div>
+      </div>
+
+      <!-- Chart -->
       <div class="card chart-card compact-chart" style="margin-bottom:1rem;">
         <h3><i class="fas fa-chart-line"></i> Monthly Revenue</h3>
         <canvas id="revenueChartCanvas"></canvas>
       </div>
+
+      <!-- Filters -->
       <div class="finance-toolbar">
         <input type="text" id="revenue-search" placeholder="Search by project name...">
         <input type="month" id="revenue-date-from" title="From date">
         <input type="month" id="revenue-date-to" title="To date">
         <button id="clear-revenue-filters-btn" class="btn btn-outline btn-sm"><i class="fas fa-times"></i> Clear</button>
       </div>
+
+      <!-- Table -->
       <div class="table-container card">
         <table id="revenue-table" class="summary-table">
           <thead>
@@ -98,7 +142,9 @@ export async function financePage() {
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="revenue-tbody"></tbody>
+          <tbody id="revenue-tbody">
+            <tr><td colspan="5" class="empty-state">Loading revenue…</td></tr>
+          </tbody>
         </table>
       </div>
       <div id="revenue-pagination" class="pagination-bar"></div>
@@ -124,6 +170,7 @@ export async function financePage() {
     let searchTerm = '';
     let dateFrom = '';
     let dateTo = '';
+    let activePeriod = 'all';
 
     const searchInput = document.getElementById('revenue-search');
     const dateFromInput = document.getElementById('revenue-date-from');
@@ -132,6 +179,7 @@ export async function financePage() {
     const tbody = document.getElementById('revenue-tbody');
     const pagination = document.getElementById('revenue-pagination');
     const kpiContainer = document.getElementById('revenue-kpi-container');
+    const netIncomeValue = document.getElementById('revenue-net-income-value');
 
     async function loadRevenue() {
       try {
@@ -143,6 +191,7 @@ export async function financePage() {
       }
       updateRevenueKPIs(allRevenue);
       updateRevenueChart(allRevenue);
+      updateNetIncome();
       applyFiltersAndSort();
     }
 
@@ -189,6 +238,15 @@ export async function financePage() {
       const sortedMonths = Object.keys(monthly).sort();
       const chartData = sortedMonths.map(m => ({ month: m, total: monthly[m] }));
       renderSalesChart('revenueChartCanvas', chartData, exchangeRate, 'Revenue (USD)');
+    }
+
+    async function updateNetIncome() {
+      try {
+        const net = await financeService.getNetIncome();
+        netIncomeValue.innerHTML = `${formatDualCurrency(net.net_income)} <br><small>Revenue: $${net.total_revenue.toLocaleString()} | Expenses: $${net.total_expense.toLocaleString()}</small>`;
+      } catch (err) {
+        console.warn('Could not load net income', err);
+      }
     }
 
     function applyFiltersAndSort() {
@@ -255,12 +313,24 @@ export async function financePage() {
     }
 
     // Event listeners
+    document.querySelectorAll('.period-filter-bar .filter-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.period-filter-bar .filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        activePeriod = pill.dataset.period;
+        setPeriodFilter(activePeriod, dateFromInput, dateToInput, applyFiltersAndSort);
+      });
+    });
+
     searchInput.addEventListener('input', e => { searchTerm = e.target.value; currentPage = 1; applyFiltersAndSort(); });
     dateFromInput.addEventListener('change', e => { dateFrom = e.target.value; currentPage = 1; applyFiltersAndSort(); });
     dateToInput.addEventListener('change', e => { dateTo = e.target.value; currentPage = 1; applyFiltersAndSort(); });
     clearBtn.addEventListener('click', () => {
       searchTerm = dateFrom = dateTo = '';
       searchInput.value = dateFromInput.value = dateToInput.value = '';
+      document.querySelectorAll('.period-filter-bar .filter-pill').forEach(p => p.classList.remove('active'));
+      document.querySelector('.period-filter-bar .filter-pill[data-period="all"]').classList.add('active');
+      activePeriod = 'all';
       currentPage = 1;
       applyFiltersAndSort();
     });
@@ -339,7 +409,7 @@ export async function financePage() {
     loadRevenue();
   }
 
-  // ======================= EXPENSE SECTION =======================
+  // ==================== EXPENSE SECTION ====================
   function renderExpenseSection() {
     const container = document.getElementById('finance-section-container');
     container.innerHTML = `
@@ -347,23 +417,41 @@ export async function financePage() {
         <button id="add-expense-btn" class="btn btn-primary"><i class="fas fa-plus"></i> Add Expense</button>
         <button id="export-expenses-csv-btn" class="btn btn-outline"><i class="fas fa-download"></i> Export CSV</button>
       </div>
+
+      <!-- Period filter pills -->
+      <div class="filter-bar period-filter-bar">
+        <button class="filter-pill active" data-period="all">All Time</button>
+        <button class="filter-pill" data-period="this-month">This Month</button>
+        <button class="filter-pill" data-period="last-month">Last Month</button>
+        <button class="filter-pill" data-period="this-year">This Year</button>
+      </div>
+
+      <!-- KPI Placeholders -->
       <div id="expense-kpi-container" class="kpi-grid">
         ${renderExpensePlaceholderKPIs()}
       </div>
+
+      <!-- Net Income Card -->
       <div class="card compact-card" style="margin-bottom:1rem;">
         <h3><i class="fas fa-balance-scale"></i> Net Income (Revenue − Expenses)</h3>
-        <div id="net-income-value" class="value" style="font-size:1.5rem;">--</div>
+        <div id="expense-net-income-value" class="value" style="font-size:1.5rem;">--</div>
       </div>
+
+      <!-- Chart -->
       <div class="card chart-card compact-chart" style="margin-bottom:1rem;">
         <h3><i class="fas fa-chart-bar"></i> Monthly Expenses</h3>
         <canvas id="expenseChartCanvas"></canvas>
       </div>
+
+      <!-- Filters -->
       <div class="finance-toolbar">
         <input type="text" id="expense-search" placeholder="Search by category or notes...">
         <input type="month" id="expense-date-from" title="From date">
         <input type="month" id="expense-date-to" title="To date">
         <button id="clear-expense-filters-btn" class="btn btn-outline btn-sm"><i class="fas fa-times"></i> Clear</button>
       </div>
+
+      <!-- Table -->
       <div class="table-container card">
         <table id="expense-table" class="summary-table">
           <thead>
@@ -375,7 +463,9 @@ export async function financePage() {
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="expense-tbody"></tbody>
+          <tbody id="expense-tbody">
+            <tr><td colspan="5" class="empty-state">Loading expenses…</td></tr>
+          </tbody>
         </table>
       </div>
       <div id="expense-pagination" class="pagination-bar"></div>
@@ -401,6 +491,7 @@ export async function financePage() {
     let searchTerm = '';
     let dateFrom = '';
     let dateTo = '';
+    let activePeriod = 'all';
 
     const searchInput = document.getElementById('expense-search');
     const dateFromInput = document.getElementById('expense-date-from');
@@ -409,7 +500,7 @@ export async function financePage() {
     const tbody = document.getElementById('expense-tbody');
     const pagination = document.getElementById('expense-pagination');
     const kpiContainer = document.getElementById('expense-kpi-container');
-    const netIncomeValue = document.getElementById('net-income-value');
+    const netIncomeValue = document.getElementById('expense-net-income-value');
 
     async function loadExpenses() {
       try {
@@ -421,7 +512,7 @@ export async function financePage() {
       }
       updateExpenseKPIs(allExpenses);
       updateExpenseChart(allExpenses);
-      await updateNetIncome();
+      updateNetIncome();
       applyFiltersAndSort();
     }
 
@@ -543,12 +634,24 @@ export async function financePage() {
     }
 
     // Event listeners
+    document.querySelectorAll('.period-filter-bar .filter-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.period-filter-bar .filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        activePeriod = pill.dataset.period;
+        setPeriodFilter(activePeriod, dateFromInput, dateToInput, applyFiltersAndSort);
+      });
+    });
+
     searchInput.addEventListener('input', e => { searchTerm = e.target.value; currentPage = 1; applyFiltersAndSort(); });
     dateFromInput.addEventListener('change', e => { dateFrom = e.target.value; currentPage = 1; applyFiltersAndSort(); });
     dateToInput.addEventListener('change', e => { dateTo = e.target.value; currentPage = 1; applyFiltersAndSort(); });
     clearBtn.addEventListener('click', () => {
       searchTerm = dateFrom = dateTo = '';
       searchInput.value = dateFromInput.value = dateToInput.value = '';
+      document.querySelectorAll('.period-filter-bar .filter-pill').forEach(p => p.classList.remove('active'));
+      document.querySelector('.period-filter-bar .filter-pill[data-period="all"]').classList.add('active');
+      activePeriod = 'all';
       currentPage = 1;
       applyFiltersAndSort();
     });
@@ -638,7 +741,7 @@ export async function financePage() {
     loadExpenses();
   }
 
-  // ======================= UTILITY =======================
+  // ==================== UTILITY ====================
   function exportCSV(rows, filename) {
     const csvContent = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -650,12 +753,10 @@ export async function financePage() {
     URL.revokeObjectURL(url);
   }
 
-  // ======================= SECTION SWITCHING =======================
+  // ==================== SECTION SWITCHING ====================
   function switchSection(section) {
     activeSection = section;
-    // Update main title
     document.getElementById('page-title').textContent = section === 'revenue' ? 'Revenue' : 'Expenses';
-    // Render appropriate section content
     if (section === 'revenue') {
       renderRevenueSection();
     } else {
@@ -663,7 +764,7 @@ export async function financePage() {
     }
   }
 
-  // ======================= EXCHANGE RATE =======================
+  // ==================== EXCHANGE RATE ====================
   document.getElementById('edit-rate-btn').addEventListener('click', () => {
     const content = `
       <h3>Update Exchange Rate</h3>
@@ -686,7 +787,6 @@ export async function financePage() {
         updateRateBadge();
         close();
         showToast('Exchange rate updated', 'success');
-        // Refresh current section
         switchSection(activeSection);
       } catch (err) {
         showToast(err.message, 'error');
@@ -694,7 +794,7 @@ export async function financePage() {
     });
   });
 
-  // ======================= INITIAL LOAD =======================
+  // ==================== INITIAL LOAD ====================
   await loadExchangeRate();
   switchSection(activeSection);
 }
