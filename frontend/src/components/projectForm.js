@@ -71,6 +71,14 @@ export function renderProjectForm(project = {}) {
 
       <div class="form-row">
         <div class="form-group">
+          <label for="project-type"><i class="fas fa-cube"></i> Project Type</label>
+          <select id="project-type" name="project_type">
+            ${PROJECT_TYPES.map(t => `
+              <option value="${t}" ${project.project_type === t ? 'selected' : ''}>${t}</option>
+            `).join('')}
+          </select>
+        </div>
+        <div class="form-group">
           <label for="project-status"><i class="fas fa-chart-line"></i> Status</label>
           <select id="project-status" name="status">
             ${['Planning','Development','Live','Maintenance','Archived'].map(s => `
@@ -78,7 +86,6 @@ export function renderProjectForm(project = {}) {
             `).join('')}
           </select>
         </div>
-        <div class="form-group"></div>
       </div>
 
       <hr class="form-divider">
@@ -121,4 +128,14 @@ const COUNTIES = [
   "Narok", "Nyamira", "Nyandarua", "Nyeri", "Samburu", "Siaya", "Taita-Taveta",
   "Tana River", "Tharaka-Nithi", "Trans Nzoia", "Turkana", "Uasin Gishu", "Vihiga",
   "Wajir", "West Pokot"
+];
+
+// Project types
+const PROJECT_TYPES = [
+  "Website",
+  "Web Application",
+  "Mobile App",
+  "Desktop App",
+  "API / Backend",
+  "Other"
 ];
