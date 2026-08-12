@@ -1547,45 +1547,17 @@ body.app-dashboard .quick-view-grid strong {
 .nav-dropdown {
   position: relative;
 }
-.dropdown-toggle {
-  width: 100%;
-  justify-content: space-between;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-.dropdown-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  margin-left: 1rem;
-  margin-top: 0.3rem;
-}
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  color: #cbd5e1;
-  text-decoration: none;
-  font-weight: 500;
-  transition: background 0.2s;
-}
-.dropdown-item:hover,
-.dropdown-item.active {
-  background: rgba(255, 215, 0, 0.1);
-  color: var(--app-gold);
-}
-/* Fix Finance dropdown toggle to match other sidebar links */
+
+/* Toggle button – made to match sidebar links exactly */
 .sidebar .dropdown-toggle {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   color: #cbd5e1;
+  font-family: inherit;          /* ✅ match other sidebar links' font */
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 0.95rem;           /* ✅ same size as sidebar links */
   padding: 0.7rem 1rem;
   border-radius: 8px;
   background: none;
@@ -1598,7 +1570,7 @@ body.app-dashboard .quick-view-grid strong {
 
 .sidebar .dropdown-toggle:hover,
 .sidebar .dropdown-toggle.active {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   color: white;
 }
 
@@ -1611,6 +1583,34 @@ body.app-dashboard .quick-view-grid strong {
 .sidebar .dropdown-arrow {
   margin-left: auto;
   font-size: 0.8rem;
+}
+
+/* Dropdown menu items */
+.dropdown-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-left: 1rem;
+  margin-top: 0.3rem;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  color: #cbd5e1;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;           /* slightly smaller for sub‑items */
+  transition: background 0.2s;
+}
+
+.dropdown-item:hover,
+.dropdown-item.active {
+  background: rgba(255, 215, 0, 0.1);
+  color: var(--app-gold);
 }
 /* ================================================================
    FINANCE TABS
