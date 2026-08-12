@@ -11,4 +11,9 @@ export const dashboardService = {
   getProjectsSummary: () => api('/api/dashboard/projects-summary'),
   getClientsSummary: () => api('/api/dashboard/clients-summary'),
   getRevenueSummary: () => api('/api/dashboard/revenue-summary'),
+  getPreferences: () => api('/api/dashboard/preferences'),
+  updatePreferences: (data) => api('/api/dashboard/preferences', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
 };
