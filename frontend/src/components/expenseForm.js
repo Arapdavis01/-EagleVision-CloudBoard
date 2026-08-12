@@ -1,5 +1,6 @@
 export function renderExpenseForm(expense = {}) {
   const categories = ['Domain', 'Hosting', 'Maintenance', 'Marketing', 'Software Licenses', 'Other'];
+  const paymentMethods = ['Cash', 'M-Pesa', 'Bank Transfer', 'PayPal', 'Card', 'Other'];
 
   return `
     <div class="form-header">
@@ -10,28 +11,48 @@ export function renderExpenseForm(expense = {}) {
 
       <div class="form-row">
         <div class="form-group">
-          <label for="expense-category">Category</label>
+          <label for="expense-vendor"><i class="fas fa-store"></i> Vendor / Provider</label>
+          <input type="text" id="expense-vendor" name="vendor" value="${escapeAttr(expense.vendor) || ''}" placeholder="e.g., GoDaddy, Render">
+        </div>
+        <div class="form-group">
+          <label for="expense-category"><i class="fas fa-tags"></i> Category <span class="required">*</span></label>
           <select id="expense-category" name="category" required>
             ${categories.map(c => `
               <option value="${c}" ${expense.category === c ? 'selected' : ''}>${c}</option>
             `).join('')}
           </select>
         </div>
+      </div>
+
+      <div class="form-row">
         <div class="form-group">
-          <label for="expense-amount">Amount ($)</label>
-          <input type="number" id="expense-amount" name="amount" step="0.01" value="${expense.amount || ''}" required>
+          <label for="expense-amount"><i class="fas fa-dollar-sign"></i> Amount ($) <span class="required">*</span></label>
+          <input type="number" id="expense-amount" name="amount" step="0.01" value="${expense.amount || ''}" required placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label for="expense-date"><i class="fas fa-calendar-alt"></i> Date</label>
+          <input type="date" id="expense-date" name="expense_date" value="${expense.expense_date || new Date().toISOString().slice(0,10)}" required>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label for="expense-date">Date</label>
-          <input type="date" id="expense-date" name="expense_date" value="${expense.expense_date || new Date().toISOString().slice(0,10)}" required>
+          <label for="expense-payment-method"><i class="fas fa-credit-card"></i> Payment Method</label>
+          <select id="expense-payment-method" name="payment_method">
+            ${paymentMethods.map(m => `
+              <option value="${m}" ${expense.payment_method === m ? 'selected' : ''}>${m}</option>
+            `).join('')}
+          </select>
         </div>
         <div class="form-group">
-          <label for="expense-notes">Notes</label>
-          <input type="text" id="expense-notes" name="notes" value="${escapeAttr(expense.notes) || ''}">
+          <label for="expense-reference"><i class="fas fa-receipt"></i> Reference / Invoice No.</label>
+          <input type="text" id="expense-reference" name="reference" value="${escapeAttr(expense.reference) || ''}" placeholder="e.g., INV-1234">
         </div>
+      </div>
+
+      <div class="form-group">
+        <label for="expense-notes"><i class="fas fa-sticky-note"></i> Notes</label>
+        <textarea id="expense-notes" name="notes" rows="2" placeholder="Optional notes...">${escapeHtml(expense.notes) || ''}</textarea>
       </div>
 
       <div class="form-actions">
@@ -44,4 +65,7 @@ export function renderExpenseForm(expense = {}) {
 
 function escapeAttr(str) {
   return str ? str.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+}
+function escapeHtml(str) {
+  return str ? str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 }
