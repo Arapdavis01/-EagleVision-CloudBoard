@@ -1541,3 +1541,90 @@ body.app-dashboard .quick-view-grid strong {
   font-weight: 600;
   white-space: nowrap;
 }
+/* ================================================================
+   SIDEBAR FINANCE DROPDOWN
+   ================================================================ */
+.nav-dropdown {
+  position: relative;
+}
+.dropdown-toggle {
+  width: 100%;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.dropdown-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-left: 1rem;
+  margin-top: 0.3rem;
+}
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  color: #cbd5e1;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+.dropdown-item:hover,
+.dropdown-item.active {
+  background: rgba(255, 215, 0, 0.1);
+  color: var(--app-gold);
+}
+
+/* ================================================================
+   FINANCE TABS
+   ================================================================ */
+.finance-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.tab-btn {
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  border: 1px solid var(--app-glass-border);
+  background: rgba(255,255,255,0.6);
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text);
+}
+.tab-btn.active {
+  background: var(--app-primary);
+  color: white;
+  border-color: var(--app-primary);
+}
+
+/* ================================================================
+   EXPENSE CATEGORY BADGE
+   ================================================================ */
+.category-badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 12px;
+  background: rgba(26,71,42,0.1);
+  color: var(--app-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Optional: Net Income Card emphasis */
+#net-income-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--app-primary);
+}
+#net-income-value small {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-light);
+}
