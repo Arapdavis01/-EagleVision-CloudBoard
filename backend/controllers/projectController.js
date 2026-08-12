@@ -24,7 +24,7 @@ exports.create = async (req, res) => {
   const {
     name, client, live_url, github, hosting, location, description,
     tech_stack, tags, next_review_date, thumbnail_url, status,
-    for_sale, asking_price
+    project_type, for_sale, asking_price
   } = req.body;
 
   // Convert for_sale to boolean
@@ -34,12 +34,12 @@ exports.create = async (req, res) => {
   const { rows } = await pool.query(
     `INSERT INTO projects
      (name, client, live_url, github, hosting, location, description, tech_stack, tags,
-      next_review_date, thumbnail_url, status, for_sale, asking_price)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      next_review_date, thumbnail_url, status, project_type, for_sale, asking_price)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
      RETURNING *`,
     [name, client, live_url, github, hosting, location, description,
      JSON.stringify(tech_stack || []), tags || '', next_review_date, thumbnail_url,
-     status || 'Planning', isForSale, askingPrice]
+     status || 'Planning', project_type || 'Other', isForSale, askingPrice]
   );
   res.status(201).json(rows[0]);
 };
@@ -49,7 +49,7 @@ exports.update = async (req, res) => {
   const {
     name, client, live_url, github, hosting, location, description,
     tech_stack, tags, next_review_date, thumbnail_url, status,
-    for_sale, asking_price
+    project_type, for_sale, asking_price
   } = req.body;
 
   // Convert for_sale to boolean
@@ -61,11 +61,11 @@ exports.update = async (req, res) => {
      name = $1, client = $2, live_url = $3, github = $4, hosting = $5, location = $6,
      description = $7, tech_stack = $8, tags = $9, next_review_date = $10,
      thumbnail_url = $11, status = $12, last_updated = NOW(),
-     for_sale = $13, asking_price = $14
-     WHERE id = $15 RETURNING *`,
+     project_type = $13, for_sale = $14, asking_price = $15
+     WHERE id = $16 RETURNING *`,
     [name, client, live_url, github, hosting, location, description,
      JSON.stringify(tech_stack || []), tags || '', next_review_date, thumbnail_url,
-     status, isForSale, askingPrice, id]
+     status, project_type || 'Other', isForSale, askingPrice, id]
   );
   if (rows.length === 0) return res.status(404).json({ error: 'Project not found' });
   res.json(rows[0]);
