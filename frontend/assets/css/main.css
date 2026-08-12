@@ -1528,3 +1528,16 @@ body.app-dashboard .quick-view-grid strong {
   margin-left: 0.3rem;
   font-size: 0.8rem;
 }
+/* Exchange rate indicator badge */
+.exchange-rate-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(26,71,42,0.1);
+  color: var(--app-primary);
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
