@@ -120,3 +120,33 @@ exports.getRevenueSummary = async (req, res) => {
   );
   res.json(rows);
 };
+
+// 9. Get admin preferences (exchange rate)
+exports.getPreferences = async (req, res) => {
+  const { rows } = await pool.query(
+    'SELECT preferences FROM admin_preferences WHERE admin_id = $1',
+    [req.adminId]
+  );
+  if (rows.length === 0) {
+    return res.json({ exchange_rate: 129 });
+  }
+  const prefs = rows[0].preferences;
+  res.json({ exchange_rate: prefs.exchange_rate || 129 });
+};
+
+// 10. Update admin preferences
+exports.updatePreferences = async (req, res) => {
+  const { exchange_rate } = req.body;
+  const newRate = parseFloat(exchange_rate);
+  if (!newRate || newRate <= 0) {
+    return res.status(400).json({ error: 'Invalid exchange rate' });
+  }
+
+  await pool.query(
+    `INSERT INTO admin_preferences (admin_id, preferences)
+     VALUES ($1, $2)
+     ON CONFLICT (admin_id) DO UPDATE SET preferences = EXCLUDED.preferences`,
+    [req.adminId, JSON.stringify({ exchange_rate: newRate })]
+  );
+  res.json({ exchange_rate: newRate });
+};
