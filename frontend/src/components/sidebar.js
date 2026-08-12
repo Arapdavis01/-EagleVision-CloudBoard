@@ -1,14 +1,28 @@
 import { authService } from '../services/authService.js';
 
-let sidebarInitialized = false;   // prevent duplicate listener bindings
-
 export function renderSidebar() {
   return `
     <div class="sidebar">
       <h1><i class="fas fa-eye"></i> EagleVision</h1>
       <a href="#dashboard" class="nav-link" data-page="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
       <a href="#projects" class="nav-link" data-page="projects"><i class="fas fa-folder-open"></i> Projects</a>
-      <a href="#finance" class="nav-link" data-page="finance"><i class="fas fa-dollar-sign"></i> Finance</a>
+
+      <!-- Finance Dropdown -->
+      <div class="nav-dropdown">
+        <button class="nav-link dropdown-toggle" id="finance-toggle">
+          <span><i class="fas fa-dollar-sign"></i> Finance</span>
+          <i class="fas fa-chevron-down dropdown-arrow"></i>
+        </button>
+        <div class="dropdown-menu hidden" id="finance-menu">
+          <a href="#finance?section=revenue" class="dropdown-item nav-sublink" data-page="finance" data-section="revenue">
+            <i class="fas fa-chart-line"></i> Revenue
+          </a>
+          <a href="#finance?section=expenses" class="dropdown-item nav-sublink" data-page="finance" data-section="expenses">
+            <i class="fas fa-wallet"></i> Expenses
+          </a>
+        </div>
+      </div>
+
       <a href="#alerts" class="nav-link" data-page="alerts"><i class="fas fa-exclamation-triangle"></i> Alerts</a>
       <button id="logout-btn" class="btn logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</button>
     </div>
@@ -16,20 +30,48 @@ export function renderSidebar() {
 }
 
 export function initSidebar() {
-  // Highlight current page
-  const currentPage = location.hash.replace('#', '') || 'dashboard';
-  document.querySelectorAll('.nav-link').forEach(link => {
-    link.classList.toggle('active', link.dataset.page === currentPage);
+  // Extract base page and section from hash
+  const fullHash = location.hash.replace('#', '');
+  const [base, queryString] = fullHash.split('?');
+  const currentPage = base || 'dashboard';
+  const currentSection = new URLSearchParams(queryString || '').get('section');
+
+  // Highlight main nav links
+  document.querySelectorAll('.nav-link[data-page]').forEach(link => {
+    const linkPage = link.dataset.page;
+    // Only exact match for main links; sublinks handled separately
+    if (linkPage === currentPage) {
+      link.classList.add('active');
+    } else {
+      link.classList.remove('active');
+    }
   });
 
-  // Bind logout only once
-  if (sidebarInitialized) return;
-  sidebarInitialized = true;
+  // Highlight sublinks (if on finance page)
+  document.querySelectorAll('.nav-sublink').forEach(link => {
+    const linkPage = link.dataset.page;
+    const linkSection = link.dataset.section;
+    if (linkPage === currentPage && linkSection === currentSection) {
+      link.classList.add('active');
+    } else {
+      link.classList.remove('active');
+    }
+  });
 
+  // Toggle finance dropdown menu
+  const financeToggle = document.getElementById('finance-toggle');
+  const financeMenu = document.getElementById('finance-menu');
+  if (financeToggle && financeMenu) {
+    financeToggle.addEventListener('click', () => {
+      financeMenu.classList.toggle('hidden');
+    });
+  }
+
+  // Logout
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
-      authService.logout();   // clears token, removes app-dashboard class, redirects to #login
+      authService.logout();
     });
   }
 }
