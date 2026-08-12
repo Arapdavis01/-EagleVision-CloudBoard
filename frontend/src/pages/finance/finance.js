@@ -1,6 +1,7 @@
 import { renderSidebar, initSidebar } from '../../components/sidebar.js';
 import { salesService } from '../../services/salesService.js';
 import { projectService } from '../../services/projectService.js';
+import { dashboardService } from '../../services/dashboardService.js';
 import { renderSalesChart } from '../../components/salesChart.js';
 import { renderSaleForm } from '../../components/saleForm.js';
 import { renderInvoicePreview } from '../../components/invoicePreview.js';
@@ -21,6 +22,10 @@ export async function financePage() {
       <div class="finance-header">
         <h2>Finance</h2>
         <div class="finance-actions">
+          <span id="exchange-rate-badge" class="exchange-rate-badge">
+            <i class="fas fa-exchange-alt"></i> 1 USD = KSh <span id="rate-value">129</span>
+          </span>
+          <button id="edit-rate-btn" class="btn btn-sm btn-outline"><i class="fas fa-edit"></i></button>
           <button id="record-sale-btn" class="btn btn-primary"><i class="fas fa-plus"></i> Record Sale</button>
           <button id="export-csv-btn" class="btn btn-outline"><i class="fas fa-download"></i> Export CSV</button>
         </div>
@@ -77,6 +82,7 @@ export async function financePage() {
   let searchTerm = '';
   let dateFrom = '';
   let dateTo = '';
+  let exchangeRate = 129;   // default, will be updated from server
 
   // --- DOM refs ---
   const searchInput = document.getElementById('finance-search');
@@ -86,10 +92,36 @@ export async function financePage() {
   const tbody = document.getElementById('sales-tbody');
   const paginationContainer = document.getElementById('pagination-container');
   const kpiContainer = document.getElementById('finance-kpi-container');
+  const rateBadge = document.getElementById('exchange-rate-badge');
+  const rateValueSpan = document.getElementById('rate-value');
 
   // --- Helpers ---
   const escapeHtml = (text) =>
     text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+
+  function formatDualCurrency(usdAmount) {
+    const usd = parseFloat(usdAmount);
+    const kes = usd * exchangeRate;
+    return `$${usd.toLocaleString()} (KSh ${kes.toLocaleString()})`;
+  }
+
+  // Update the exchange rate display
+  function updateRateBadge() {
+    if (rateValueSpan) {
+      rateValueSpan.textContent = exchangeRate;
+    }
+  }
+
+  // Load exchange rate from server
+  async function loadExchangeRate() {
+    try {
+      const prefs = await dashboardService.getPreferences();
+      exchangeRate = prefs.exchange_rate || 129;
+      updateRateBadge();
+    } catch (err) {
+      console.warn('Could not load exchange rate, using default', err);
+    }
+  }
 
   // Placeholder KPI cards
   function renderPlaceholderFinanceKPIs() {
@@ -114,7 +146,7 @@ export async function financePage() {
     applyFiltersAndSort();
   }
 
-  // --- KPI updates ---
+  // --- KPI updates (dual currency) ---
   function updateKPIs(sales) {
     const totalRevenue = sales.reduce((sum, s) => sum + parseFloat(s.amount), 0);
     const now = new Date();
@@ -126,14 +158,30 @@ export async function financePage() {
     const avgSale = sales.length ? totalRevenue / sales.length : 0;
 
     kpiContainer.innerHTML = `
-      <div class="card kpi-card compact-kpi"><i class="fas fa-dollar-sign kpi-icon"></i><h3>Total Revenue</h3><div class="value">$${totalRevenue.toLocaleString()}</div></div>
-      <div class="card kpi-card compact-kpi"><i class="fas fa-calendar-week kpi-icon"></i><h3>Revenue This Month</h3><div class="value">$${thisMonthRevenue.toLocaleString()}</div></div>
-      <div class="card kpi-card compact-kpi"><i class="fas fa-chart-line kpi-icon"></i><h3>Average Sale</h3><div class="value">$${avgSale.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div>
-      <div class="card kpi-card compact-kpi"><i class="fas fa-receipt kpi-icon"></i><h3>Total Sales</h3><div class="value">${sales.length}</div></div>
+      <div class="card kpi-card compact-kpi">
+        <i class="fas fa-dollar-sign kpi-icon"></i>
+        <h3>Total Revenue</h3>
+        <div class="value">${formatDualCurrency(totalRevenue)}</div>
+      </div>
+      <div class="card kpi-card compact-kpi">
+        <i class="fas fa-calendar-week kpi-icon"></i>
+        <h3>Revenue This Month</h3>
+        <div class="value">${formatDualCurrency(thisMonthRevenue)}</div>
+      </div>
+      <div class="card kpi-card compact-kpi">
+        <i class="fas fa-chart-line kpi-icon"></i>
+        <h3>Average Sale</h3>
+        <div class="value">${formatDualCurrency(avgSale)}</div>
+      </div>
+      <div class="card kpi-card compact-kpi">
+        <i class="fas fa-receipt kpi-icon"></i>
+        <h3>Total Sales</h3>
+        <div class="value">${sales.length}</div>
+      </div>
     `;
   }
 
-  // --- Chart update ---
+  // --- Chart update (pass exchange rate) ---
   function updateChart(sales) {
     const monthly = {};
     sales.forEach(s => {
@@ -142,7 +190,7 @@ export async function financePage() {
     });
     const sortedMonths = Object.keys(monthly).sort();
     const chartData = sortedMonths.map(m => ({ month: m, total: monthly[m] }));
-    renderSalesChart('salesChartCanvas', chartData);
+    renderSalesChart('salesChartCanvas', chartData, exchangeRate);
   }
 
   // --- Filtering + Sorting + Pagination ---
@@ -199,7 +247,7 @@ export async function financePage() {
     tbody.innerHTML = pageItems.map(s => `
       <tr data-id="${s.id}">
         <td>${escapeHtml(s.project_name) || 'Unknown'}</td>
-        <td>${formatCurrency(s.amount)}</td>
+        <td>${formatDualCurrency(s.amount)}</td>
         <td>${formatDate(s.sale_date)}</td>
         <td>${s.notes ? escapeHtml(s.notes.substring(0, 30)) + (s.notes.length > 30 ? '…' : '') : ''}</td>
         <td class="actions-cell">
@@ -267,7 +315,6 @@ export async function financePage() {
       }
       currentPage = 1;
       applyFiltersAndSort();
-      // Update header icons (visual feedback)
       document.querySelectorAll('.sortable i').forEach(i => i.className = 'fas fa-sort');
       const icon = th.querySelector('i');
       if (icon) icon.className = sortDir === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
@@ -328,13 +375,18 @@ export async function financePage() {
 
   // Export CSV
   document.getElementById('export-csv-btn').addEventListener('click', () => {
-    const rows = [['Project','Amount','Date','Notes']];
-    allSales.forEach(s => rows.push([
-      s.project_name || 'Unknown',
-      s.amount,
-      s.sale_date,
-      s.notes || ''
-    ]));
+    const rows = [['Project','Amount (USD)','Amount (KES)','Date','Notes']];
+    allSales.forEach(s => {
+      const usd = parseFloat(s.amount);
+      const kes = usd * exchangeRate;
+      rows.push([
+        s.project_name || 'Unknown',
+        usd.toFixed(2),
+        kes.toFixed(2),
+        s.sale_date,
+        s.notes || ''
+      ]);
+    });
     const csvContent = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -346,6 +398,37 @@ export async function financePage() {
     showToast('CSV exported', 'success');
   });
 
-  // Initial load
+  // Edit Exchange Rate
+  document.getElementById('edit-rate-btn').addEventListener('click', () => {
+    const content = `
+      <h3>Update Exchange Rate</h3>
+      <div class="form-group">
+        <label>1 USD = KSh</label>
+        <input type="number" id="new-rate-input" value="${exchangeRate}" step="1" min="1" required>
+      </div>
+      <button id="save-rate-btn" class="btn btn-primary">Save</button>
+    `;
+    const { close } = showModal(content);
+    document.getElementById('save-rate-btn').addEventListener('click', async () => {
+      const newRate = parseFloat(document.getElementById('new-rate-input').value);
+      if (!newRate || newRate <= 0) {
+        showToast('Please enter a valid rate.', 'error');
+        return;
+      }
+      try {
+        await dashboardService.updatePreferences({ exchange_rate: newRate });
+        exchangeRate = newRate;
+        updateRateBadge();
+        close();
+        showToast('Exchange rate updated', 'success');
+        loadData();   // refresh KPIs, chart, and table with new rate
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  });
+
+  // --- Initial load ---
+  await loadExchangeRate();   // load saved rate first
   loadData();
 }
