@@ -1710,3 +1710,47 @@ body.app-dashboard .quick-view-grid strong {
   padding: 1rem;
   color: var(--text-light);
 }
+/* ================================================================
+   ALERTS PAGE – MODERN ENHANCEMENTS
+   ================================================================ */
+.alerts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.alerts-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.alerts-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.alerts-toolbar input {
+  flex: 1;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--app-glass-border);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.8);
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.alerts-toolbar input:focus {
+  outline: none;
+  border-color: var(--app-primary);
+}
+
+/* Status badge for alert table */
+.status.down {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.status.up {
+  background: #dcfce7;
+  color: #166534;
+}
