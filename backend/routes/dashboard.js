@@ -14,5 +14,7 @@ router.get('/for-sale', ctrl.forSaleProjects);
 router.get('/projects-summary', ctrl.getProjectsSummary);
 router.get('/clients-summary', ctrl.getClientsSummary);
 router.get('/revenue-summary', ctrl.getRevenueSummary);
+router.get('/preferences', ctrl.getPreferences);
+router.put('/preferences', ctrl.updatePreferences);
 
 module.exports = router;
