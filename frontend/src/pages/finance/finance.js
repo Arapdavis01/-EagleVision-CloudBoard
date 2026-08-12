@@ -25,7 +25,7 @@ export async function financePage() {
     ${renderSidebar()}
     <div class="main-content">
       <div class="finance-header">
-        <h2>Finance</h2>
+        <h2 id="page-title">${activeSection === 'revenue' ? 'Revenue' : 'Expenses'}</h2>
         <div class="finance-actions">
           <span id="exchange-rate-badge" class="exchange-rate-badge">
             <i class="fas fa-exchange-alt"></i> 1 USD = KSh <span id="rate-value">129</span>
@@ -34,13 +34,7 @@ export async function financePage() {
         </div>
       </div>
 
-      <!-- Tabs -->
-      <div class="finance-tabs">
-        <button id="tab-revenue" class="tab-btn ${activeSection === 'revenue' ? 'active' : ''}">Revenue</button>
-        <button id="tab-expenses" class="tab-btn ${activeSection === 'expenses' ? 'active' : ''}">Expenses</button>
-      </div>
-
-      <!-- Section container (dynamic) -->
+      <!-- Section container (dynamic content) -->
       <div id="finance-section-container"></div>
     </div>
   `;
@@ -72,7 +66,7 @@ export async function financePage() {
     }
   }
 
-  // ==== REVENUE SECTION ====
+  // ======================= REVENUE SECTION =======================
   function renderRevenueSection() {
     const container = document.getElementById('finance-section-container');
     container.innerHTML = `
@@ -194,7 +188,7 @@ export async function financePage() {
       });
       const sortedMonths = Object.keys(monthly).sort();
       const chartData = sortedMonths.map(m => ({ month: m, total: monthly[m] }));
-      renderSalesChart('revenueChartCanvas', chartData, exchangeRate);
+      renderSalesChart('revenueChartCanvas', chartData, exchangeRate, 'Revenue (USD)');
     }
 
     function applyFiltersAndSort() {
@@ -260,7 +254,7 @@ export async function financePage() {
       pagination.innerHTML = html;
     }
 
-    // Event listeners for revenue section
+    // Event listeners
     searchInput.addEventListener('input', e => { searchTerm = e.target.value; currentPage = 1; applyFiltersAndSort(); });
     dateFromInput.addEventListener('change', e => { dateFrom = e.target.value; currentPage = 1; applyFiltersAndSort(); });
     dateToInput.addEventListener('change', e => { dateTo = e.target.value; currentPage = 1; applyFiltersAndSort(); });
@@ -345,7 +339,7 @@ export async function financePage() {
     loadRevenue();
   }
 
-  // ==== EXPENSE SECTION ====
+  // ======================= EXPENSE SECTION =======================
   function renderExpenseSection() {
     const container = document.getElementById('finance-section-container');
     container.innerHTML = `
@@ -473,7 +467,6 @@ export async function financePage() {
       });
       const sortedMonths = Object.keys(monthly).sort();
       const chartData = sortedMonths.map(m => ({ month: m, total: monthly[m] }));
-      // Use generic renderSalesChart with label parameter
       renderSalesChart('expenseChartCanvas', chartData, exchangeRate, 'Expenses (USD)');
     }
 
@@ -645,7 +638,7 @@ export async function financePage() {
     loadExpenses();
   }
 
-  // ==== UTILITY: CSV export ====
+  // ======================= UTILITY =======================
   function exportCSV(rows, filename) {
     const csvContent = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -657,26 +650,20 @@ export async function financePage() {
     URL.revokeObjectURL(url);
   }
 
-  // ==== TABS SWITCHING ====
+  // ======================= SECTION SWITCHING =======================
   function switchSection(section) {
     activeSection = section;
-    // Update hash without triggering page reload
-    const newHash = `#finance?section=${section}`;
-    if (location.hash !== newHash) {
-      history.pushState(null, '', newHash);
+    // Update main title
+    document.getElementById('page-title').textContent = section === 'revenue' ? 'Revenue' : 'Expenses';
+    // Render appropriate section content
+    if (section === 'revenue') {
+      renderRevenueSection();
+    } else {
+      renderExpenseSection();
     }
-    // Update tab buttons
-    document.getElementById('tab-revenue').classList.toggle('active', section === 'revenue');
-    document.getElementById('tab-expenses').classList.toggle('active', section === 'expenses');
-    // Render appropriate section
-    if (section === 'revenue') renderRevenueSection();
-    else renderExpenseSection();
   }
 
-  document.getElementById('tab-revenue').addEventListener('click', () => switchSection('revenue'));
-  document.getElementById('tab-expenses').addEventListener('click', () => switchSection('expenses'));
-
-  // ==== EXCHANGE RATE EDIT ====
+  // ======================= EXCHANGE RATE =======================
   document.getElementById('edit-rate-btn').addEventListener('click', () => {
     const content = `
       <h3>Update Exchange Rate</h3>
@@ -699,16 +686,15 @@ export async function financePage() {
         updateRateBadge();
         close();
         showToast('Exchange rate updated', 'success');
-        // Refresh current section data
-        if (activeSection === 'revenue') renderRevenueSection();
-        else renderExpenseSection();
+        // Refresh current section
+        switchSection(activeSection);
       } catch (err) {
         showToast(err.message, 'error');
       }
     });
   });
 
-  // ==== INITIAL LOAD ====
+  // ======================= INITIAL LOAD =======================
   await loadExchangeRate();
   switchSection(activeSection);
 }
