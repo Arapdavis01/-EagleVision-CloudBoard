@@ -8,7 +8,7 @@ const { startUptimeCron } = require('./jobs/uptimeCron');
 // Import route modules
 const authRoutes = require('./routes/auth');
 const projectRoutes = require('./routes/projects');
-const salesRoutes = require('./routes/sales');
+const financeRoutes = require('./routes/finance');   // ✅ new consolidated finance routes
 const dashboardRoutes = require('./routes/dashboard');
 const alertRoutes = require('./routes/alerts');
 const uptimeRoutes = require('./routes/uptime');
@@ -19,14 +19,14 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors);
-app.options('*', cors);   // <-- ADD THIS LINE to handle preflight requests
+app.options('*', cors);   // handle preflight requests
 app.use(express.json());
 app.use(cookieParser());
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
-app.use('/api/sales', salesRoutes);
+app.use('/api/finance', financeRoutes);   // ✅ uses /api/finance/revenue and /api/finance/expenses
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/uptime', uptimeRoutes);
