@@ -1,17 +1,6 @@
 export function renderProjectCard(project, view = 'grid') {
-  // Safely handle tech_stack (could be string or already an array)
-  let techList = [];
-  if (project.tech_stack) {
-    if (typeof project.tech_stack === 'string') {
-      try {
-        techList = JSON.parse(project.tech_stack);
-      } catch (e) {
-        techList = [];   // ignore parse errors
-      }
-    } else if (Array.isArray(project.tech_stack)) {
-      techList = project.tech_stack;
-    }
-  }
+  // Safely parse tech_stack into an array
+  const techList = parseTechStack(project.tech_stack);
 
   const techStack = techList
     .map(t => `<span class="tech-badge">${escapeHtml(t)}</span>`)
@@ -59,6 +48,24 @@ export function renderProjectCard(project, view = 'grid') {
       </div>
     `;
   }
+}
+
+function parseTechStack(tech) {
+  if (!tech) return [];
+  if (Array.isArray(tech)) return tech;
+  if (typeof tech === 'string') {
+    // Try to parse as JSON
+    try {
+      const parsed = JSON.parse(tech);
+      if (Array.isArray(parsed)) return parsed;
+      if (typeof parsed === 'string') return parsed.split(',').map(s => s.trim()).filter(Boolean);
+      return [];
+    } catch {
+      // If not valid JSON, assume comma-separated string
+      return tech.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+  return [];
 }
 
 function escapeHtml(text) {
