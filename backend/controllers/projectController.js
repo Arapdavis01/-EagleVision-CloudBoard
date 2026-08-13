@@ -97,3 +97,81 @@ exports.getPublicStatus = async (req, res) => {
   );
   res.json({ project, latest_uptime: logs[0] || null });
 };
+
+// ==================== PROJECT UPDATES (SERVICE RECORD) ====================
+
+// Get all updates for a specific project
+exports.getProjectUpdates = async (req, res) => {
+  const { projectId } = req.params;
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM project_updates WHERE project_id = $1 ORDER BY created_at DESC`,
+      [projectId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch project updates' });
+  }
+};
+
+// Create a new update for a project
+exports.createProjectUpdate = async (req, res) => {
+  const { projectId } = req.params;
+  const { update_type, title, description, cost } = req.body;
+
+  if (!title || !update_type) {
+    return res.status(400).json({ error: 'Update type and title are required' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO project_updates (project_id, update_type, title, description, cost)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [projectId, update_type, title, description || null, cost || null]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create project update' });
+  }
+};
+
+// Update an existing project update entry
+exports.updateProjectUpdate = async (req, res) => {
+  const { id } = req.params;
+  const { update_type, title, description, cost } = req.body;
+
+  if (!title || !update_type) {
+    return res.status(400).json({ error: 'Update type and title are required' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `UPDATE project_updates SET
+       update_type = $1, title = $2, description = $3, cost = $4
+       WHERE id = $5
+       RETURNING *`,
+      [update_type, title, description || null, cost || null, id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Update not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update project update' });
+  }
+};
+
+// Delete a project update entry
+exports.deleteProjectUpdate = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { rowCount } = await pool.query('DELETE FROM project_updates WHERE id = $1', [id]);
+    if (rowCount === 0) return res.status(404).json({ error: 'Update not found' });
+    res.json({ message: 'Update deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete project update' });
+  }
+};
