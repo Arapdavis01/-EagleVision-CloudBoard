@@ -1,6 +1,10 @@
-export function renderExpenseForm(expense = {}) {
+export function renderExpenseForm(expense = {}, projects = []) {
   const categories = ['Domain', 'Hosting', 'Maintenance', 'Marketing', 'Software Licenses', 'Other'];
   const paymentMethods = ['Cash', 'M-Pesa', 'Bank Transfer', 'PayPal', 'Card', 'Other'];
+
+  const projectOptions = projects
+    .map(p => `<option value="${p.id}" ${Number(expense.project_id) === Number(p.id) ? 'selected' : ''}>${escapeHtml(p.name)}</option>`)
+    .join('');
 
   return `
     <div class="form-header">
@@ -8,6 +12,32 @@ export function renderExpenseForm(expense = {}) {
     </div>
     <form id="expense-form" class="modern-form">
       <input type="hidden" name="id" value="${expense.id || ''}">
+
+      <!-- Project link (optional) -->
+      <div class="form-group">
+        <label for="expense-project"><i class="fas fa-folder-open"></i> Project</label>
+        <select id="expense-project" name="project_id">
+          <option value="">-- General Expense (no project) --</option>
+          ${projectOptions}
+        </select>
+      </div>
+
+      <!-- Quick expense templates -->
+      <div class="expense-templates">
+        <span class="templates-label"><i class="fas fa-bolt"></i> Quick Add:</span>
+        <button type="button" class="btn btn-sm btn-outline quick-expense" data-category="Domain" data-amount="1000" data-vendor="GoDaddy">
+          Domain (KSh 1,000)
+        </button>
+        <button type="button" class="btn btn-sm btn-outline quick-expense" data-category="Hosting" data-amount="500" data-vendor="Render">
+          Hosting (KSh 500/mo)
+        </button>
+        <button type="button" class="btn btn-sm btn-outline quick-expense" data-category="SSL Certificate" data-amount="2500" data-vendor="SSL Provider">
+          SSL (KSh 2,500)
+        </button>
+        <button type="button" class="btn btn-sm btn-outline quick-expense" data-category="Maintenance" data-amount="1500" data-vendor="Maintenance">
+          Maintenance (KSh 1,500)
+        </button>
+      </div>
 
       <div class="form-row">
         <div class="form-group">
