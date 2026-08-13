@@ -67,11 +67,20 @@ export async function projectsPage() {
   const escapeHtml = (text) =>
     text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 
+  // ✅ Robust parser: always returns an array
   const parseTechStack = (tech) => {
     if (!tech) return [];
     if (Array.isArray(tech)) return tech;
     if (typeof tech === 'string') {
-      try { return JSON.parse(tech); } catch (e) { return []; }
+      try {
+        const parsed = JSON.parse(tech);
+        if (Array.isArray(parsed)) return parsed;
+        if (typeof parsed === 'string') return parsed.split(',').map(s => s.trim()).filter(Boolean);
+        return [];
+      } catch {
+        // Not valid JSON, assume comma-separated string
+        return tech.split(',').map(s => s.trim()).filter(Boolean);
+      }
     }
     return [];
   };
