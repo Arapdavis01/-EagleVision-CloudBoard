@@ -2,13 +2,14 @@ import { renderSidebar, initSidebar } from '../../components/sidebar.js';
 import { dashboardService } from '../../services/dashboardService.js';
 import { projectService } from '../../services/projectService.js';
 import { salesService } from '../../services/salesService.js';
+import { uploadImage } from '../../services/uploadService.js';   // ✅ new
 import { showModal } from '../../components/modal.js';
 import { renderProjectForm } from '../../components/projectForm.js';
 import { renderSaleForm } from '../../components/saleForm.js';
 import { showToast } from '../../utils/notifications.js';
 
 let statusChart = null;
-let expiringDomains = [];   // store for modal
+let expiringDomains = [];
 
 export async function dashboardPage() {
   document.body.classList.add('app-dashboard');
@@ -25,15 +26,12 @@ export async function dashboardPage() {
         </div>
       </div>
 
-      <!-- KPI Row -->
       <div id="kpi-container" class="kpi-grid">
         ${renderPlaceholderKPIs()}
       </div>
 
-      <!-- Pending Revenue (only if > 0) -->
       <div id="pending-revenue-container"></div>
 
-      <!-- Chart + Reviews Side by Side -->
       <div class="dashboard-row">
         <div class="card chart-card compact-chart">
           <h3><i class="fas fa-chart-pie"></i> Status Breakdown</h3>
@@ -45,7 +43,6 @@ export async function dashboardPage() {
         </div>
       </div>
 
-      <!-- County & For-Sale Side by Side -->
       <div class="dashboard-row">
         <div id="county-breakdown-container" class="card compact-card"></div>
         <div id="for-sale-container" class="card compact-card"></div>
@@ -58,7 +55,25 @@ export async function dashboardPage() {
   const escapeHtml = (text) =>
     text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 
-  // Data refresh
+  // Attach file upload listener to the project form (used in Add Project modal)
+  function attachThumbnailUpload() {
+    const fileInput = document.getElementById('project-thumbnail-file');
+    const thumbnailUrlInput = document.getElementById('project-thumbnail');
+    if (!fileInput || !thumbnailUrlInput) return;
+
+    fileInput.addEventListener('change', async () => {
+      if (fileInput.files.length === 0) return;
+      showToast('Uploading image...', 'info');
+      try {
+        const { url } = await uploadImage(fileInput.files[0]);
+        thumbnailUrlInput.value = url;
+        showToast('Image uploaded', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
   async function refreshDashboard() {
     const kpiPromise = dashboardService.getKPIs();
     const pendingRevenuePromise = dashboardService.getPendingRevenue().catch(() => ({ total_pending: 0 }));
@@ -69,7 +84,6 @@ export async function dashboardPage() {
     const forSalePromise = dashboardService.getForSaleProjects().catch(() => []);
     const expiringDomainsPromise = dashboardService.getExpiringDomains().catch(() => []);
 
-    // KPIs + expiring domains
     Promise.all([kpiPromise, expiringDomainsPromise])
       .then(([kpis, domains]) => {
         expiringDomains = domains;
@@ -80,7 +94,6 @@ export async function dashboardPage() {
         console.warn('Failed to load KPI or expiring domains', err);
       });
 
-    // Pending revenue
     pendingRevenuePromise.then(pendingRevenue => {
       const html = pendingRevenue.total_pending > 0 ? `
         <div class="card kpi-card pending-revenue-card compact-kpi">
@@ -106,9 +119,7 @@ export async function dashboardPage() {
 
   refreshDashboard();
 
-  // --- Event listeners ---
-
-  // KPI clicks – open summary modals
+  // KPI clicks
   document.getElementById('kpi-container').addEventListener('click', (e) => {
     const card = e.target.closest('.clickable');
     if (!card) return;
@@ -123,6 +134,9 @@ export async function dashboardPage() {
     const form = document.getElementById('project-form');
     const cancelBtn = document.querySelector('.cancel-form-btn');
     if (cancelBtn) cancelBtn.addEventListener('click', () => close());
+
+    attachThumbnailUpload();   // ✅ enable image upload
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
@@ -163,21 +177,11 @@ export async function dashboardPage() {
 
 async function openKpiModal(type) {
   switch (type) {
-    case 'projects':
-      await showProjectsSummaryModal();
-      break;
-    case 'overdue':
-      await showOverdueSummaryModal();
-      break;
-    case 'clients':
-      await showClientsSummaryModal();
-      break;
-    case 'revenue':
-      await showRevenueSummaryModal();
-      break;
-    case 'domains':
-      await showExpiringDomainsModal();
-      break;
+    case 'projects': await showProjectsSummaryModal(); break;
+    case 'overdue': await showOverdueSummaryModal(); break;
+    case 'clients': await showClientsSummaryModal(); break;
+    case 'revenue': await showRevenueSummaryModal(); break;
+    case 'domains': await showExpiringDomainsModal(); break;
   }
 }
 
@@ -215,7 +219,7 @@ async function showExpiringDomainsModal() {
   showModal(content);
 }
 
-// --- Projects Modal (unchanged) ---
+// --- Projects Modal ---
 async function showProjectsSummaryModal() {
   const projects = await dashboardService.getProjectsSummary().catch(() => []);
   const content = `
@@ -229,22 +233,18 @@ async function showProjectsSummaryModal() {
         <thead>
           <tr><th>Name</th><th>Client</th><th>Status</th><th>Location</th></tr>
         </thead>
-        <tbody id="modal-project-tbody">
-          ${renderProjectRows(projects)}
-        </tbody>
+        <tbody id="modal-project-tbody">${renderProjectRows(projects)}</tbody>
       </table>
     </div>
     <p class="modal-no-results hidden" id="modal-no-projects">No matching projects.</p>
   `;
   showModal(content);
-
   document.getElementById('modal-project-search')?.addEventListener('input', (e) => {
     const term = e.target.value.toLowerCase();
     const rows = document.querySelectorAll('#modal-project-tbody tr');
     let visible = 0;
     rows.forEach(row => {
-      const text = row.textContent.toLowerCase();
-      const show = text.includes(term);
+      const show = row.textContent.toLowerCase().includes(term);
       row.style.display = show ? '' : 'none';
       if (show) visible++;
     });
@@ -264,7 +264,7 @@ function renderProjectRows(projects) {
   `).join('');
 }
 
-// --- Overdue Reviews Modal (unchanged) ---
+// --- Overdue Reviews Modal ---
 async function showOverdueSummaryModal() {
   const overdue = await dashboardService.getOverdueReviews().catch(() => []);
   const now = new Date();
@@ -295,7 +295,6 @@ async function showOverdueSummaryModal() {
     </div>
   `;
   showModal(content);
-
   document.querySelectorAll('.resolve-overdue-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const projectId = btn.dataset.id;
@@ -311,7 +310,7 @@ async function showOverdueSummaryModal() {
   });
 }
 
-// --- Clients Modal (unchanged) ---
+// --- Clients Modal ---
 async function showClientsSummaryModal() {
   const clients = await dashboardService.getClientsSummary().catch(() => []);
   const activeCount = clients.filter(c => c.is_active).length;
@@ -339,7 +338,7 @@ async function showClientsSummaryModal() {
   showModal(content);
 }
 
-// --- Revenue Modal (unchanged) ---
+// --- Revenue Modal ---
 async function showRevenueSummaryModal() {
   const sales = await dashboardService.getRevenueSummary().catch(() => []);
   const total = sales.reduce((sum, s) => sum + parseFloat(s.amount), 0);
@@ -438,7 +437,7 @@ function renderClickableKPIs(data, domainsCount) {
   `;
 }
 
-// ==================== Other dashboard components (unchanged) ====================
+// ==================== Other dashboard components ====================
 
 function renderStatusChart(distribution) {
   if (!distribution || distribution.length === 0) return;
@@ -468,10 +467,7 @@ function renderStatusChart(distribution) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: {
-          position: 'right',
-          labels: { padding: 8, usePointStyle: true, boxWidth: 8 }
-        }
+        legend: { position: 'right', labels: { padding: 8, usePointStyle: true, boxWidth: 8 } }
       }
     }
   });
