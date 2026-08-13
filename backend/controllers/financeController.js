@@ -97,13 +97,16 @@ exports.getRevenueSummary = async (req, res) => {
 
 // ==================== EXPENSES ====================
 
-// Get all expenses
+// Get all expenses with optional project name
 exports.getAllExpenses = async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, category, amount, expense_date, notes, created_at
-       FROM expenses
-       ORDER BY expense_date DESC`
+      `SELECT e.id, e.project_id, e.category, e.amount, e.expense_date,
+              e.vendor, e.payment_method, e.reference, e.notes, e.created_at,
+              p.name as project_name
+       FROM expenses e
+       LEFT JOIN projects p ON e.project_id = p.id
+       ORDER BY e.expense_date DESC`
     );
     res.json(rows);
   } catch (err) {
@@ -112,17 +115,52 @@ exports.getAllExpenses = async (req, res) => {
   }
 };
 
+// Get expenses for a specific project
+exports.getProjectExpenses = async (req, res) => {
+  const { projectId } = req.params;
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, project_id, category, amount, expense_date,
+              vendor, payment_method, reference, notes, created_at
+       FROM expenses
+       WHERE project_id = $1
+       ORDER BY expense_date DESC`,
+      [projectId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch project expenses' });
+  }
+};
+
 // Create an expense
 exports.createExpense = async (req, res) => {
-  const { category, amount, expense_date, notes } = req.body;
+  const {
+    project_id, category, amount, expense_date,
+    vendor, payment_method, reference, notes
+  } = req.body;
+
   if (!category || !amount) {
     return res.status(400).json({ error: 'Category and amount are required' });
   }
+
   try {
     const { rows } = await pool.query(
-      `INSERT INTO expenses (category, amount, expense_date, notes)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [category, amount, expense_date || new Date().toISOString().slice(0,10), notes || null]
+      `INSERT INTO expenses
+       (project_id, category, amount, expense_date, vendor, payment_method, reference, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [
+        project_id || null,
+        category,
+        amount,
+        expense_date || new Date().toISOString().slice(0,10),
+        vendor || null,
+        payment_method || null,
+        reference || null,
+        notes || null
+      ]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -134,15 +172,33 @@ exports.createExpense = async (req, res) => {
 // Update an expense
 exports.updateExpense = async (req, res) => {
   const { id } = req.params;
-  const { category, amount, expense_date, notes } = req.body;
+  const {
+    project_id, category, amount, expense_date,
+    vendor, payment_method, reference, notes
+  } = req.body;
+
   if (!category || !amount) {
     return res.status(400).json({ error: 'Category and amount are required' });
   }
+
   try {
     const { rows } = await pool.query(
-      `UPDATE expenses SET category = $1, amount = $2, expense_date = $3, notes = $4
-       WHERE id = $5 RETURNING *`,
-      [category, amount, expense_date, notes || null, id]
+      `UPDATE expenses SET
+       project_id = $1, category = $2, amount = $3, expense_date = $4,
+       vendor = $5, payment_method = $6, reference = $7, notes = $8
+       WHERE id = $9
+       RETURNING *`,
+      [
+        project_id || null,
+        category,
+        amount,
+        expense_date || new Date().toISOString().slice(0,10),
+        vendor || null,
+        payment_method || null,
+        reference || null,
+        notes || null,
+        id
+      ]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Expense not found' });
     res.json(rows[0]);
