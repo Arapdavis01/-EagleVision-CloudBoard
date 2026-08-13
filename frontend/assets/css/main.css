@@ -2295,3 +2295,34 @@ body.app-dashboard .service-record-header h2 {
 .multi-total strong {
   margin-right: 0.5rem;
 }
+/* ================================================================
+   REVIEW & UPDATE / DISABLED STATES
+   ================================================================ */
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.modern-form input:disabled,
+.modern-form select:disabled,
+.modern-form textarea:disabled {
+  background: #f3f4f6;
+  cursor: not-allowed;
+  color: var(--text-light);
+}
+
+/* Ensure service record header buttons align cleanly */
+.service-record-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Optional: give extra separation in the review update modal */
+.review-update-form .form-actions {
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+  margin-top: 1.5rem;
+}
