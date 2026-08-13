@@ -6,6 +6,7 @@ import { uploadImage } from '../../services/uploadService.js';
 import { showModal } from '../../components/modal.js';
 import { renderProjectForm } from '../../components/projectForm.js';
 import { renderSaleForm } from '../../components/saleForm.js';
+import { renderReviewUpdateForm } from '../../components/reviewUpdateForm.js';
 import { showToast } from '../../utils/notifications.js';
 
 let statusChart = null;
@@ -119,7 +120,6 @@ export async function dashboardPage() {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // 1) Upload thumbnail if file selected
       const fileInput = document.getElementById('project-thumbnail-file');
       const thumbnailUrlInput = document.getElementById('project-thumbnail');
       if (fileInput && fileInput.files.length > 0) {
@@ -133,7 +133,6 @@ export async function dashboardPage() {
         }
       }
 
-      // 2) Save project
       const formData = new FormData(form);
       const data = Object.fromEntries(formData.entries());
       try {
@@ -259,7 +258,7 @@ function renderProjectRows(projects) {
   `).join('');
 }
 
-// --- Overdue Reviews Modal ---
+// --- Overdue Reviews Modal (now with Review & Update) ---
 async function showOverdueSummaryModal() {
   const overdue = await dashboardService.getOverdueReviews().catch(() => []);
   const now = new Date();
@@ -281,7 +280,7 @@ async function showOverdueSummaryModal() {
               <td><strong>${escapeHtml(r.name)}</strong></td>
               <td>${escapeHtml(r.client) || '—'}</td>
               <td><span class="badge badge-overdue">${days} day${days !== 1 ? 's' : ''}</span></td>
-              <td><button class="btn btn-sm btn-outline resolve-overdue-btn" data-id="${r.id}">Resolve</button></td>
+              <td><button class="btn btn-sm btn-outline review-update-btn" data-id="${r.id}"><i class="fas fa-sync-alt"></i> Review & Update</button></td>
             </tr>`;
           }).join('')}
           ${overdue.length === 0 ? '<tr><td colspan="4">No overdue reviews 🎉</td></tr>' : ''}
@@ -290,17 +289,33 @@ async function showOverdueSummaryModal() {
     </div>
   `;
   showModal(content);
-  document.querySelectorAll('.resolve-overdue-btn').forEach(btn => {
+
+  document.querySelectorAll('.review-update-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const projectId = btn.dataset.id;
-      try {
-        await projectService.update(projectId, { next_review_date: new Date().toISOString().split('T')[0] });
-        showToast('Review marked as resolved', 'success');
-        btn.closest('tr')?.remove();
-        refreshDashboard();
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
+      const project = { id: projectId };
+      // Fetch full project data if needed
+      const fullProject = await projectService.getOne(projectId).catch(() => null);
+      const projectForForm = fullProject || project;
+      const { close } = showModal(renderReviewUpdateForm(projectForForm));
+      const form = document.getElementById('review-update-form');
+      if (!form) return;
+
+      document.querySelector('.cancel-review-update-btn')?.addEventListener('click', () => close());
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        try {
+          await projectService.reviewAndUpdate(projectId, data);
+          close();
+          showToast('Review & update saved', 'success');
+          refreshDashboard();
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
     });
   });
 }
