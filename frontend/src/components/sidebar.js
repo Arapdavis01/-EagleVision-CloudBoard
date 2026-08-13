@@ -6,6 +6,7 @@ export function renderSidebar() {
       <h1><i class="fas fa-eye"></i> EagleVision</h1>
       <a href="#dashboard" class="nav-link" data-page="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
       <a href="#projects" class="nav-link" data-page="projects"><i class="fas fa-folder-open"></i> Projects</a>
+      <a href="#showcase" class="nav-link" data-page="showcase"><i class="fas fa-images"></i> Project Showcase</a>
 
       <!-- Finance Dropdown -->
       <div class="nav-dropdown">
@@ -39,7 +40,6 @@ export function initSidebar() {
   // Highlight main nav links
   document.querySelectorAll('.nav-link[data-page]').forEach(link => {
     const linkPage = link.dataset.page;
-    // Only exact match for main links; sublinks handled separately
     if (linkPage === currentPage) {
       link.classList.add('active');
     } else {
