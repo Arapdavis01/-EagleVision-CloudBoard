@@ -8,6 +8,7 @@ import { renderExpenseForm } from '../../components/expenseForm.js';
 import { renderInvoicePreview } from '../../components/invoicePreview.js';
 import { showModal } from '../../components/modal.js';
 import { showToast } from '../../utils/notifications.js';
+import { confirmDialog } from '../../utils/confirm.js';
 import { formatCurrency, formatDate } from '../../utils/helpers.js';
 
 let revenueChart = null;
@@ -358,7 +359,7 @@ export async function financePage() {
       applyFiltersAndSort();
     });
 
-    document.getElementById('revenue-table').addEventListener('click', e => {
+    document.getElementById('revenue-table').addEventListener('click', async e => {
       const btn = e.target.closest('button');
       if (!btn) return;
       const row = e.target.closest('tr');
@@ -368,9 +369,10 @@ export async function financePage() {
       if (btn.classList.contains('delete-revenue')) {
         const sale = allRevenue.find(s => s.id == id);
         if (!sale) return;
-        if (!confirm(`Delete sale of $${parseFloat(sale.amount).toLocaleString()}?`)) return;
+        const confirmed = await confirmDialog(`Delete sale of $${parseFloat(sale.amount).toLocaleString()}?`, 'Confirm Deletion');
+        if (!confirmed) return;
         financeService.deleteRevenue(id)
-          .then(() => { showToast('Sale deleted', 'info'); loadRevenue(); })
+          .then(() => { showToast('Sale deleted', 'success'); loadRevenue(); })
           .catch(err => showToast(err.message, 'error'));
       } else if (btn.classList.contains('view-invoice')) {
         const sale = allRevenue.find(s => s.id == id);
@@ -674,7 +676,7 @@ export async function financePage() {
       applyFiltersAndSort();
     });
 
-    document.getElementById('expense-table').addEventListener('click', e => {
+    document.getElementById('expense-table').addEventListener('click', async e => {
       const btn = e.target.closest('button');
       if (!btn) return;
       const row = e.target.closest('tr');
@@ -684,9 +686,10 @@ export async function financePage() {
       if (btn.classList.contains('delete-expense')) {
         const expense = allExpenses.find(x => x.id == id);
         if (!expense) return;
-        if (!confirm(`Delete expense of $${parseFloat(expense.amount).toLocaleString()}?`)) return;
+        const confirmed = await confirmDialog(`Delete expense of $${parseFloat(expense.amount).toLocaleString()}?`, 'Confirm Deletion');
+        if (!confirmed) return;
         financeService.deleteExpense(id)
-          .then(() => { showToast('Expense deleted', 'info'); loadExpenses(); })
+          .then(() => { showToast('Expense deleted', 'success'); loadExpenses(); })
           .catch(err => showToast(err.message, 'error'));
       } else if (btn.classList.contains('edit-expense')) {
         const expense = allExpenses.find(x => x.id == id);
