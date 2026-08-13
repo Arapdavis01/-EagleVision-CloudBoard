@@ -42,6 +42,8 @@ export async function financePage() {
 
   // State
   let exchangeRate = 129;
+  let allProjects = [];
+
   const escapeHtml = (text) =>
     text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 
@@ -65,6 +67,15 @@ export async function financePage() {
     }
   }
 
+  async function loadProjects() {
+    try {
+      allProjects = await projectService.getAll();
+    } catch (err) {
+      console.warn('Could not load projects', err);
+      allProjects = [];
+    }
+  }
+
   // ==================== PERIOD FILTER HELPER ====================
   function setPeriodFilter(period, dateFromInput, dateToInput, refreshFn) {
     const now = new Date();
@@ -79,7 +90,7 @@ export async function financePage() {
     } else if (period === 'this-year') {
       from = `${now.getFullYear()}-01-01`;
       to = `${now.getFullYear()}-12-31`;
-    } else { // all
+    } else {
       from = '';
       to = '';
     }
@@ -97,7 +108,6 @@ export async function financePage() {
         <button id="export-revenue-csv-btn" class="btn btn-outline"><i class="fas fa-download"></i> Export CSV</button>
       </div>
 
-      <!-- Period filter pills -->
       <div class="filter-bar period-filter-bar">
         <button class="filter-pill active" data-period="all">All Time</button>
         <button class="filter-pill" data-period="this-month">This Month</button>
@@ -105,24 +115,20 @@ export async function financePage() {
         <button class="filter-pill" data-period="this-year">This Year</button>
       </div>
 
-      <!-- KPI Placeholders -->
       <div id="revenue-kpi-container" class="kpi-grid">
         ${renderRevenuePlaceholderKPIs()}
       </div>
 
-      <!-- Net Income Card -->
       <div class="card compact-card" style="margin-bottom:1rem;">
         <h3><i class="fas fa-balance-scale"></i> Net Income (Revenue − Expenses)</h3>
         <div id="revenue-net-income-value" class="value" style="font-size:1.5rem;">--</div>
       </div>
 
-      <!-- Chart -->
       <div class="card chart-card compact-chart" style="margin-bottom:1rem;">
         <h3><i class="fas fa-chart-line"></i> Monthly Revenue</h3>
         <canvas id="revenueChartCanvas"></canvas>
       </div>
 
-      <!-- Filters -->
       <div class="finance-toolbar">
         <input type="text" id="revenue-search" placeholder="Search by project name...">
         <input type="month" id="revenue-date-from" title="From date">
@@ -130,7 +136,6 @@ export async function financePage() {
         <button id="clear-revenue-filters-btn" class="btn btn-outline btn-sm"><i class="fas fa-times"></i> Clear</button>
       </div>
 
-      <!-- Table -->
       <div class="table-container card">
         <table id="revenue-table" class="summary-table">
           <thead>
@@ -312,7 +317,6 @@ export async function financePage() {
       pagination.innerHTML = html;
     }
 
-    // Event listeners
     document.querySelectorAll('.period-filter-bar .filter-pill').forEach(pill => {
       pill.addEventListener('click', () => {
         document.querySelectorAll('.period-filter-bar .filter-pill').forEach(p => p.classList.remove('active'));
@@ -375,8 +379,8 @@ export async function financePage() {
     });
 
     document.getElementById('record-sale-btn').addEventListener('click', async () => {
-      const projects = await projectService.getAll().catch(() => []);
-      const { close } = showModal(renderSaleForm(projects));
+      await loadProjects();
+      const { close } = showModal(renderSaleForm(allProjects));
       document.getElementById('sale-form')?.addEventListener('submit', async e => {
         e.preventDefault();
         const formData = new FormData(e.target);
@@ -418,7 +422,6 @@ export async function financePage() {
         <button id="export-expenses-csv-btn" class="btn btn-outline"><i class="fas fa-download"></i> Export CSV</button>
       </div>
 
-      <!-- Period filter pills -->
       <div class="filter-bar period-filter-bar">
         <button class="filter-pill active" data-period="all">All Time</button>
         <button class="filter-pill" data-period="this-month">This Month</button>
@@ -426,24 +429,20 @@ export async function financePage() {
         <button class="filter-pill" data-period="this-year">This Year</button>
       </div>
 
-      <!-- KPI Placeholders -->
       <div id="expense-kpi-container" class="kpi-grid">
         ${renderExpensePlaceholderKPIs()}
       </div>
 
-      <!-- Net Income Card -->
       <div class="card compact-card" style="margin-bottom:1rem;">
         <h3><i class="fas fa-balance-scale"></i> Net Income (Revenue − Expenses)</h3>
         <div id="expense-net-income-value" class="value" style="font-size:1.5rem;">--</div>
       </div>
 
-      <!-- Chart -->
       <div class="card chart-card compact-chart" style="margin-bottom:1rem;">
         <h3><i class="fas fa-chart-bar"></i> Monthly Expenses</h3>
         <canvas id="expenseChartCanvas"></canvas>
       </div>
 
-      <!-- Filters -->
       <div class="finance-toolbar">
         <input type="text" id="expense-search" placeholder="Search by category or notes...">
         <input type="month" id="expense-date-from" title="From date">
@@ -451,12 +450,12 @@ export async function financePage() {
         <button id="clear-expense-filters-btn" class="btn btn-outline btn-sm"><i class="fas fa-times"></i> Clear</button>
       </div>
 
-      <!-- Table -->
       <div class="table-container card">
         <table id="expense-table" class="summary-table">
           <thead>
             <tr>
               <th class="sortable" data-sort="category">Category <i class="fas fa-sort"></i></th>
+              <th>Project</th>
               <th class="sortable" data-sort="amount">Amount <i class="fas fa-sort"></i></th>
               <th class="sortable" data-sort="expense_date">Date <i class="fas fa-sort"></i></th>
               <th>Notes</th>
@@ -464,7 +463,7 @@ export async function financePage() {
             </tr>
           </thead>
           <tbody id="expense-tbody">
-            <tr><td colspan="5" class="empty-state">Loading expenses…</td></tr>
+            <tr><td colspan="6" class="empty-state">Loading expenses…</td></tr>
           </tbody>
         </table>
       </div>
@@ -574,7 +573,7 @@ export async function financePage() {
       let filtered = [...allExpenses];
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
-        filtered = filtered.filter(e => (e.category + ' ' + (e.notes || '')).toLowerCase().includes(term));
+        filtered = filtered.filter(e => (e.category + ' ' + (e.notes || '') + ' ' + (e.project_name || '')).toLowerCase().includes(term));
       }
       if (dateFrom) filtered = filtered.filter(e => e.expense_date >= dateFrom);
       if (dateTo) filtered = filtered.filter(e => e.expense_date <= dateTo);
@@ -607,12 +606,13 @@ export async function financePage() {
 
     function renderExpenseTable(pageItems) {
       if (pageItems.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="empty-state">No expenses found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No expenses found.</td></tr>`;
         return;
       }
       tbody.innerHTML = pageItems.map(e => `
         <tr data-id="${e.id}">
           <td><span class="category-badge">${escapeHtml(e.category)}</span></td>
+          <td>${escapeHtml(e.project_name) || '—'}</td>
           <td>${formatDualCurrency(e.amount)}</td>
           <td>${formatDate(e.expense_date)}</td>
           <td>${e.notes ? escapeHtml(e.notes.substring(0,30)) + (e.notes.length > 30 ? '…' : '') : ''}</td>
@@ -633,7 +633,6 @@ export async function financePage() {
       pagination.innerHTML = html;
     }
 
-    // Event listeners
     document.querySelectorAll('.period-filter-bar .filter-pill').forEach(pill => {
       pill.addEventListener('click', () => {
         document.querySelectorAll('.period-filter-bar .filter-pill').forEach(p => p.classList.remove('active'));
@@ -692,43 +691,66 @@ export async function financePage() {
       } else if (btn.classList.contains('edit-expense')) {
         const expense = allExpenses.find(x => x.id == id);
         if (!expense) return;
-        const { close } = showModal(renderExpenseForm(expense));
-        document.getElementById('expense-form')?.addEventListener('submit', async ev => {
-          ev.preventDefault();
-          const fd = new FormData(ev.target);
-          const data = Object.fromEntries(fd.entries());
-          try {
-            await financeService.updateExpense(id, data);
-            close();
-            showToast('Expense updated', 'success');
-            loadExpenses();
-          } catch (err) { showToast(err.message, 'error'); }
+        loadProjects().then(() => {
+          const { close } = showModal(renderExpenseForm(expense, allProjects));
+          attachQuickExpenseTemplates();
+          document.getElementById('expense-form')?.addEventListener('submit', async ev => {
+            ev.preventDefault();
+            const fd = new FormData(ev.target);
+            const data = Object.fromEntries(fd.entries());
+            try {
+              await financeService.updateExpense(id, data);
+              close();
+              showToast('Expense updated', 'success');
+              loadExpenses();
+            } catch (err) { showToast(err.message, 'error'); }
+          });
+          document.querySelector('.cancel-expense-btn')?.addEventListener('click', () => close());
         });
-        document.querySelector('.cancel-expense-btn')?.addEventListener('click', () => close());
       }
     });
 
     document.getElementById('add-expense-btn').addEventListener('click', () => {
-      const { close } = showModal(renderExpenseForm());
-      document.getElementById('expense-form')?.addEventListener('submit', async e => {
-        e.preventDefault();
-        const fd = new FormData(e.target);
-        const data = Object.fromEntries(fd.entries());
-        try {
-          await financeService.createExpense(data);
-          close();
-          showToast('Expense added', 'success');
-          loadExpenses();
-        } catch (err) { showToast(err.message, 'error'); }
+      loadProjects().then(() => {
+        const { close } = showModal(renderExpenseForm({}, allProjects));
+        attachQuickExpenseTemplates();
+        document.getElementById('expense-form')?.addEventListener('submit', async e => {
+          e.preventDefault();
+          const fd = new FormData(e.target);
+          const data = Object.fromEntries(fd.entries());
+          try {
+            await financeService.createExpense(data);
+            close();
+            showToast('Expense added', 'success');
+            loadExpenses();
+          } catch (err) { showToast(err.message, 'error'); }
+        });
+        document.querySelector('.cancel-expense-btn')?.addEventListener('click', () => close());
       });
-      document.querySelector('.cancel-expense-btn')?.addEventListener('click', () => close());
     });
 
+    // Quick expense template buttons
+    function attachQuickExpenseTemplates() {
+      document.querySelectorAll('.quick-expense').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const category = btn.dataset.category;
+          const vendor = btn.dataset.vendor;
+          const amountKsh = parseFloat(btn.dataset.amount);
+          const amountUsd = amountKsh / exchangeRate;
+
+          document.getElementById('expense-category').value = category;
+          document.getElementById('expense-vendor').value = vendor;
+          document.getElementById('expense-amount').value = amountUsd.toFixed(2);
+        });
+      });
+    }
+
     document.getElementById('export-expenses-csv-btn').addEventListener('click', () => {
-      const rows = [['Category','Amount (USD)','Amount (KES)','Date','Notes']];
+      const rows = [['Category','Project','Amount (USD)','Amount (KES)','Date','Notes']];
       allExpenses.forEach(e => {
         rows.push([
           e.category,
+          e.project_name || '',
           parseFloat(e.amount).toFixed(2),
           (parseFloat(e.amount) * exchangeRate).toFixed(2),
           e.expense_date,
@@ -796,5 +818,6 @@ export async function financePage() {
 
   // ==================== INITIAL LOAD ====================
   await loadExchangeRate();
+  await loadProjects();
   switchSection(activeSection);
 }
