@@ -2,7 +2,7 @@ import { renderSidebar, initSidebar } from '../../components/sidebar.js';
 import { dashboardService } from '../../services/dashboardService.js';
 import { projectService } from '../../services/projectService.js';
 import { salesService } from '../../services/salesService.js';
-import { uploadImage } from '../../services/uploadService.js';   // ✅ new
+import { uploadImage } from '../../services/uploadService.js';
 import { showModal } from '../../components/modal.js';
 import { renderProjectForm } from '../../components/projectForm.js';
 import { renderSaleForm } from '../../components/saleForm.js';
@@ -54,25 +54,6 @@ export async function dashboardPage() {
 
   const escapeHtml = (text) =>
     text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
-
-  // Attach file upload listener to the project form (used in Add Project modal)
-  function attachThumbnailUpload() {
-    const fileInput = document.getElementById('project-thumbnail-file');
-    const thumbnailUrlInput = document.getElementById('project-thumbnail');
-    if (!fileInput || !thumbnailUrlInput) return;
-
-    fileInput.addEventListener('change', async () => {
-      if (fileInput.files.length === 0) return;
-      showToast('Uploading image...', 'info');
-      try {
-        const { url } = await uploadImage(fileInput.files[0]);
-        thumbnailUrlInput.value = url;
-        showToast('Image uploaded', 'success');
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
-    });
-  }
 
   async function refreshDashboard() {
     const kpiPromise = dashboardService.getKPIs();
@@ -135,10 +116,24 @@ export async function dashboardPage() {
     const cancelBtn = document.querySelector('.cancel-form-btn');
     if (cancelBtn) cancelBtn.addEventListener('click', () => close());
 
-    attachThumbnailUpload();   // ✅ enable image upload
-
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      // 1) Upload thumbnail if file selected
+      const fileInput = document.getElementById('project-thumbnail-file');
+      const thumbnailUrlInput = document.getElementById('project-thumbnail');
+      if (fileInput && fileInput.files.length > 0) {
+        try {
+          showToast('Uploading image...', 'info');
+          const { url } = await uploadImage(fileInput.files[0]);
+          thumbnailUrlInput.value = url;
+        } catch (err) {
+          showToast(err.message, 'error');
+          return;
+        }
+      }
+
+      // 2) Save project
       const formData = new FormData(form);
       const data = Object.fromEntries(formData.entries());
       try {
