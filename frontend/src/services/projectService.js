@@ -19,7 +19,11 @@ export const projectService = {
   createUpdate: (projectId, data) =>
     api(`/api/projects/${projectId}/updates`, { method: 'POST', body: JSON.stringify(data) }),
   updateUpdate: (id, data) =>
-    api(`/api/updates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    api(`/api/projects/updates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteUpdate: (id) =>
-    api(`/api/updates/${id}`, { method: 'DELETE' }),
+    api(`/api/projects/updates/${id}`, { method: 'DELETE' }),
+
+  // Combined review & update action
+  reviewAndUpdate: (projectId, data) =>
+    api(`/api/projects/${projectId}/review-and-update`, { method: 'POST', body: JSON.stringify(data) }),
 };
