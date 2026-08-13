@@ -3,6 +3,7 @@ import { dashboardPage } from './pages/dashboard/dashboard.js';
 import { projectsPage } from './pages/projects/projects.js';
 import { financePage } from './pages/finance/finance.js';
 import { alertsPage } from './pages/alerts/alerts.js';
+import { showcasePage } from './pages/showcase/showcase.js';
 
 const routes = {
   '#login': loginPage,
@@ -10,6 +11,7 @@ const routes = {
   '#projects': projectsPage,
   '#finance': financePage,
   '#alerts': alertsPage,
+  '#showcase': showcasePage,
 };
 
 export async function initRouter() {
