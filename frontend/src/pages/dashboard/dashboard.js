@@ -8,6 +8,7 @@ import { renderSaleForm } from '../../components/saleForm.js';
 import { showToast } from '../../utils/notifications.js';
 
 let statusChart = null;
+let expiringDomains = [];   // store for modal
 
 export async function dashboardPage() {
   document.body.classList.add('app-dashboard');
@@ -66,11 +67,18 @@ export async function dashboardPage() {
     const statusDistPromise = dashboardService.getStatusDistribution().catch(() => []);
     const countiesPromise = dashboardService.getCountyBreakdown().catch(() => []);
     const forSalePromise = dashboardService.getForSaleProjects().catch(() => []);
+    const expiringDomainsPromise = dashboardService.getExpiringDomains().catch(() => []);
 
-    // KPIs
-    kpiPromise.then(kpis => {
-      document.getElementById('kpi-container').innerHTML = renderClickableKPIs(kpis);
-    });
+    // KPIs + expiring domains
+    Promise.all([kpiPromise, expiringDomainsPromise])
+      .then(([kpis, domains]) => {
+        expiringDomains = domains;
+        document.getElementById('kpi-container').innerHTML =
+          renderClickableKPIs(kpis, domains.length);
+      })
+      .catch(err => {
+        console.warn('Failed to load KPI or expiring domains', err);
+      });
 
     // Pending revenue
     pendingRevenuePromise.then(pendingRevenue => {
@@ -88,17 +96,11 @@ export async function dashboardPage() {
       upcomingReviewsPromise, overdueReviewsPromise, statusDistPromise, countiesPromise, forSalePromise
     ]);
 
-    // Chart
     renderStatusChart(statusDist);
-
-    // Overdue & Upcoming reviews (compact versions)
     document.getElementById('overdue-reviews-container').innerHTML = renderOverdueReviewsCompact(overdueReviews);
     document.getElementById('reviews-container').innerHTML = renderUpcomingReviewsCompact(upcomingReviews);
-
-    // County breakdown
-    document.getElementById('county-breakdown-container').innerHTML = renderCountyBreakdown(counties) || '<p class="empty-state small"><i class="fas fa-map-marker-alt"></i> No location data</p>';
-
-    // For-sale projects
+    document.getElementById('county-breakdown-container').innerHTML =
+      renderCountyBreakdown(counties) || '<p class="empty-state small"><i class="fas fa-map-marker-alt"></i> No location data</p>';
     document.getElementById('for-sale-container').innerHTML = renderForSaleProjectsCompact(forSale);
   }
 
@@ -173,10 +175,47 @@ async function openKpiModal(type) {
     case 'revenue':
       await showRevenueSummaryModal();
       break;
+    case 'domains':
+      await showExpiringDomainsModal();
+      break;
   }
 }
 
-// --- Projects Modal ---
+// --- Expiring Domains Modal ---
+async function showExpiringDomainsModal() {
+  const domains = expiringDomains;
+  const now = new Date();
+  const content = `
+    <div class="modal-header-bar">
+      <h2><i class="fas fa-globe"></i> Domains Expiring Soon</h2>
+      <span class="modal-count">${domains.length} expiring</span>
+    </div>
+    <div class="summary-table-wrapper">
+      <table class="summary-table">
+        <thead>
+          <tr><th>Project</th><th>Domain</th><th>Registrar</th><th>Expiry Date</th><th>Days Left</th></tr>
+        </thead>
+        <tbody>
+          ${domains.map(d => {
+            const expiry = new Date(d.expiry_date);
+            const daysLeft = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+            return `<tr>
+              <td><strong>${escapeHtml(d.name)}</strong></td>
+              <td>${escapeHtml(d.domain_name) || '—'}</td>
+              <td>${escapeHtml(d.registrar) || '—'}</td>
+              <td>${new Date(d.expiry_date).toLocaleDateString()}</td>
+              <td><span class="badge ${daysLeft <= 7 ? 'badge-overdue' : 'badge-due-soon'}">${daysLeft} day${daysLeft !== 1 ? 's' : ''}</span></td>
+            </tr>`;
+          }).join('')}
+          ${domains.length === 0 ? '<tr><td colspan="5">No domains expiring soon 🎉</td></tr>' : ''}
+        </tbody>
+      </table>
+    </div>
+  `;
+  showModal(content);
+}
+
+// --- Projects Modal (unchanged) ---
 async function showProjectsSummaryModal() {
   const projects = await dashboardService.getProjectsSummary().catch(() => []);
   const content = `
@@ -199,7 +238,6 @@ async function showProjectsSummaryModal() {
   `;
   showModal(content);
 
-  // Live search filter
   document.getElementById('modal-project-search')?.addEventListener('input', (e) => {
     const term = e.target.value.toLowerCase();
     const rows = document.querySelectorAll('#modal-project-tbody tr');
@@ -226,7 +264,7 @@ function renderProjectRows(projects) {
   `).join('');
 }
 
-// --- Overdue Reviews Modal ---
+// --- Overdue Reviews Modal (unchanged) ---
 async function showOverdueSummaryModal() {
   const overdue = await dashboardService.getOverdueReviews().catch(() => []);
   const now = new Date();
@@ -258,16 +296,14 @@ async function showOverdueSummaryModal() {
   `;
   showModal(content);
 
-  // Resolve button logic
   document.querySelectorAll('.resolve-overdue-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const projectId = btn.dataset.id;
       try {
-        // Set next review date to today to mark as resolved
         await projectService.update(projectId, { next_review_date: new Date().toISOString().split('T')[0] });
         showToast('Review marked as resolved', 'success');
         btn.closest('tr')?.remove();
-        refreshDashboard(); // update KPI counts
+        refreshDashboard();
       } catch (err) {
         showToast(err.message, 'error');
       }
@@ -275,7 +311,7 @@ async function showOverdueSummaryModal() {
   });
 }
 
-// --- Clients Modal ---
+// --- Clients Modal (unchanged) ---
 async function showClientsSummaryModal() {
   const clients = await dashboardService.getClientsSummary().catch(() => []);
   const activeCount = clients.filter(c => c.is_active).length;
@@ -303,7 +339,7 @@ async function showClientsSummaryModal() {
   showModal(content);
 }
 
-// --- Revenue Modal ---
+// --- Revenue Modal (unchanged) ---
 async function showRevenueSummaryModal() {
   const sales = await dashboardService.getRevenueSummary().catch(() => []);
   const total = sales.reduce((sum, s) => sum + parseFloat(s.amount), 0);
@@ -359,6 +395,11 @@ function renderPlaceholderKPIs() {
       <h3>Active Clients</h3>
       <div class="value">--</div>
     </div>
+    <div class="card kpi-card clickable compact-kpi" data-kpi-type="domains">
+      <i class="fas fa-globe kpi-icon"></i>
+      <h3>Domains Expiring</h3>
+      <div class="value">--</div>
+    </div>
     <div class="card kpi-card clickable compact-kpi" data-kpi-type="revenue">
       <i class="fas fa-dollar-sign kpi-icon"></i>
       <h3>Total Revenue</h3>
@@ -367,7 +408,7 @@ function renderPlaceholderKPIs() {
   `;
 }
 
-function renderClickableKPIs(data) {
+function renderClickableKPIs(data, domainsCount) {
   return `
     <div class="card kpi-card clickable compact-kpi" data-kpi-type="projects">
       <i class="fas fa-folder-open kpi-icon"></i>
@@ -383,6 +424,11 @@ function renderClickableKPIs(data) {
       <i class="fas fa-users kpi-icon"></i>
       <h3>Active Clients</h3>
       <div class="value">${data.active_clients}</div>
+    </div>
+    <div class="card kpi-card clickable compact-kpi" data-kpi-type="domains">
+      <i class="fas fa-globe kpi-icon"></i>
+      <h3>Domains Expiring</h3>
+      <div class="value">${domainsCount}</div>
     </div>
     <div class="card kpi-card clickable compact-kpi" data-kpi-type="revenue">
       <i class="fas fa-dollar-sign kpi-icon"></i>
