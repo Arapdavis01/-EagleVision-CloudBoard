@@ -1,12 +1,12 @@
 import { renderSidebar, initSidebar } from '../../components/sidebar.js';
 import { projectService } from '../../services/projectService.js';
+import { uploadImage } from '../../services/uploadService.js';   // ✅ new
 import { renderProjectCard } from '../../components/projectCard.js';
 import { showModal } from '../../components/modal.js';
 import { renderProjectForm } from '../../components/projectForm.js';
 import { showToast } from '../../utils/notifications.js';
 
 export async function projectsPage() {
-  // ✅ Activate the green/gold glass‑morphism theme
   document.body.classList.add('app-dashboard');
 
   const app = document.getElementById('app');
@@ -45,15 +45,15 @@ export async function projectsPage() {
         </div>
       </div>
 
-      <!-- Loading skeleton (shown initially) -->
+      <!-- Loading skeleton -->
       <div id="loading-skeleton" class="projects-grid">
         ${renderSkeletonCards(6)}
       </div>
 
-      <!-- Projects container (hidden until data loads) -->
+      <!-- Projects container -->
       <div id="projects-container" class="projects-grid hidden"></div>
 
-      <!-- Empty state (hidden by default) -->
+      <!-- Empty state -->
       <div id="empty-state" class="empty-state hidden">
         <i class="fas fa-folder-open fa-3x"></i>
         <p>No projects found.</p>
@@ -63,9 +63,6 @@ export async function projectsPage() {
 
   initSidebar();
 
-  // ============================================================
-  //  IMPORTANT: define escapeHtml & parseTechStack BEFORE any usage
-  // ============================================================
   const escapeHtml = (text) =>
     text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 
@@ -78,14 +75,14 @@ export async function projectsPage() {
     return [];
   };
 
-  // --- State ---
+  // State
   let currentView = 'grid';
   let projects = [];
   let currentStatus = 'all';
   let currentSort = 'name-asc';
   let searchTerm = '';
 
-  // Read optional URL filter (from dashboard click)
+  // URL filter
   const hash = location.hash.split('?')[1] || '';
   const params = new URLSearchParams(hash);
   const urlFilter = params.get('filter');
@@ -93,7 +90,7 @@ export async function projectsPage() {
   else if (urlFilter === 'clients') currentStatus = 'all';
   else if (urlFilter === 'revenue') { location.hash = '#finance'; return; }
 
-  // --- DOM elements ---
+  // DOM elements
   const searchInput = document.getElementById('search');
   const sortSelect = document.getElementById('sort-select');
   const container = document.getElementById('projects-container');
@@ -103,7 +100,6 @@ export async function projectsPage() {
   const viewListBtn = document.querySelector('.view-list');
   const filterPills = document.querySelectorAll('.filter-pill');
 
-  // --- Loading skeleton helper ---
   function renderSkeletonCards(count) {
     return Array(count).fill().map(() => `
       <div class="card skeleton-card">
@@ -114,7 +110,6 @@ export async function projectsPage() {
     `).join('');
   }
 
-  // --- Load projects ---
   async function loadProjects(search = '') {
     skeleton.classList.remove('hidden');
     container.classList.add('hidden');
@@ -145,7 +140,6 @@ export async function projectsPage() {
     container.classList.remove('hidden');
   }
 
-  // --- Sort projects ---
   function sortProjects() {
     projects.sort((a, b) => {
       const nameA = (a.name || '').toLowerCase();
@@ -167,13 +161,12 @@ export async function projectsPage() {
     });
   }
 
-  // --- Render project cards ---
   function renderProjects() {
     container.className = currentView === 'grid' ? 'projects-grid' : 'projects-list';
     container.innerHTML = projects.map(p => renderProjectCard(p, currentView)).join('');
   }
 
-  // --- Event delegation for project actions ---
+  // Event delegation for project actions
   container.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
     if (!btn) return;
@@ -192,7 +185,6 @@ export async function projectsPage() {
     }
   });
 
-  // --- Quick View Modal (uses parseTechStack + escapeHtml – both defined above) ---
   function handleQuickView(projectId) {
     const project = projects.find(p => p.id == projectId);
     if (!project) return showToast('Project not found', 'error');
@@ -224,7 +216,6 @@ export async function projectsPage() {
     showModal(content);
   }
 
-  // --- Edit handler ---
   async function handleEdit(projectId) {
     const project = projects.find(p => p.id == projectId);
     if (!project) return showToast('Project not found', 'error');
@@ -232,6 +223,8 @@ export async function projectsPage() {
     const { close } = showModal(renderProjectForm(project));
     const form = document.getElementById('project-form');
     if (!form) return;
+
+    attachThumbnailUpload();   // ✅ attach file upload listener
 
     const cancelBtn = document.querySelector('.cancel-form-btn');
     if (cancelBtn) cancelBtn.addEventListener('click', () => close());
@@ -251,7 +244,6 @@ export async function projectsPage() {
     });
   }
 
-  // --- Delete handler ---
   async function handleDelete(projectId) {
     if (!confirm('Delete this project?')) return;
     try {
@@ -263,7 +255,6 @@ export async function projectsPage() {
     }
   }
 
-  // --- Copy link handler ---
   function handleCopyLink(token) {
     if (!token) {
       showToast('No public link available', 'error');
@@ -275,11 +266,13 @@ export async function projectsPage() {
       .catch(() => showToast('Failed to copy', 'error'));
   }
 
-  // --- Add Project button ---
+  // Add Project button
   document.getElementById('add-project-btn').addEventListener('click', () => {
     const { close } = showModal(renderProjectForm());
     const form = document.getElementById('project-form');
     if (!form) return;
+
+    attachThumbnailUpload();   // ✅ attach file upload listener
 
     const cancelBtn = document.querySelector('.cancel-form-btn');
     if (cancelBtn) cancelBtn.addEventListener('click', () => close());
@@ -299,17 +292,33 @@ export async function projectsPage() {
     });
   });
 
-  // --- Search input ---
+  // Thumbnail upload handler
+  function attachThumbnailUpload() {
+    const fileInput = document.getElementById('project-thumbnail-file');
+    const thumbnailUrlInput = document.getElementById('project-thumbnail');
+    if (!fileInput || !thumbnailUrlInput) return;
+
+    fileInput.addEventListener('change', async () => {
+      if (fileInput.files.length === 0) return;
+      showToast('Uploading image...', 'info');
+      try {
+        const { url } = await uploadImage(fileInput.files[0]);
+        thumbnailUrlInput.value = url;
+        showToast('Image uploaded', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
   searchInput.addEventListener('input', (e) => loadProjects(e.target.value));
 
-  // --- Sort select ---
   sortSelect.addEventListener('change', (e) => {
     currentSort = e.target.value;
     sortProjects();
     renderProjects();
   });
 
-  // --- Filter pills ---
   filterPills.forEach(pill => {
     pill.addEventListener('click', () => {
       filterPills.forEach(p => p.classList.remove('active'));
@@ -319,7 +328,6 @@ export async function projectsPage() {
     });
   });
 
-  // --- View toggle ---
   viewGridBtn.addEventListener('click', () => {
     currentView = 'grid';
     viewGridBtn.classList.add('active');
@@ -334,6 +342,5 @@ export async function projectsPage() {
     renderProjects();
   });
 
-  // --- Initial load ---
   loadProjects();
 }
