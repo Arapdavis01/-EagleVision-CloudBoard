@@ -89,6 +89,32 @@ export function renderProjectForm(project = {}) {
       </div>
 
       <hr class="form-divider">
+      <h3><i class="fas fa-globe"></i> Domain Information</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="project-domain-name"><i class="fas fa-link"></i> Domain Name</label>
+          <input id="project-domain-name" name="domain_name" value="${escapeAttr(project.domain_name) || ''}" placeholder="e.g., example.com">
+        </div>
+        <div class="form-group">
+          <label for="project-registrar"><i class="fas fa-building"></i> Registrar</label>
+          <input id="project-registrar" name="registrar" value="${escapeAttr(project.registrar) || ''}" placeholder="e.g., GoDaddy, Namecheap">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="project-expiry-date"><i class="fas fa-calendar-times"></i> Expiry Date</label>
+          <input type="date" id="project-expiry-date" name="expiry_date" value="${project.expiry_date || ''}">
+        </div>
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" name="auto_renew" value="true" ${project.auto_renew ? 'checked' : ''}>
+            Auto‑renew enabled
+          </label>
+        </div>
+      </div>
+
+      <hr class="form-divider">
       <h3><i class="fas fa-tag"></i> Sale Opportunity</h3>
       <div class="form-row">
         <div class="form-group checkbox-group">
