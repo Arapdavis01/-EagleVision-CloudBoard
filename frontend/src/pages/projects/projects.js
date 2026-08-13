@@ -5,6 +5,7 @@ import { renderProjectCard } from '../../components/projectCard.js';
 import { showModal } from '../../components/modal.js';
 import { renderProjectForm } from '../../components/projectForm.js';
 import { showToast } from '../../utils/notifications.js';
+import { confirmDialog } from '../../utils/confirm.js';
 
 export async function projectsPage() {
   document.body.classList.add('app-dashboard');
@@ -183,7 +184,6 @@ export async function projectsPage() {
     } else if (btn.classList.contains('quick-view-project')) {
       handleQuickView(projectId);
     } else if (btn.classList.contains('service-record-project')) {
-      // Navigate to Service Record page with project preselected
       location.hash = `#service-record?project_id=${projectId}`;
     }
   });
@@ -271,11 +271,12 @@ export async function projectsPage() {
   }
 
   async function handleDelete(projectId) {
-    if (!confirm('Delete this project?')) return;
+    const confirmed = await confirmDialog('Delete this project?', 'Confirm Deletion');
+    if (!confirmed) return;
     try {
       await projectService.delete(projectId);
       await loadProjects();
-      showToast('Project deleted', 'info');
+      showToast('Project deleted', 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
