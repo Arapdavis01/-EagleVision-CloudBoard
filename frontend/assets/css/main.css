@@ -2264,3 +2264,34 @@ body.app-dashboard .service-record-header h2 {
   color: white;
   border-color: var(--app-primary);
 }
+/* ================================================================
+   MULTI-EXPENSE FORM
+   ================================================================ */
+.multi-expense-table td {
+  padding: 0.4rem;
+  vertical-align: middle;
+}
+.multi-expense-table .form-control {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.multi-expense-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.multi-total {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--app-primary);
+}
+
+.multi-total strong {
+  margin-right: 0.5rem;
+}
