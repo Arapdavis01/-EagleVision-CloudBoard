@@ -4,7 +4,7 @@ import { projectService } from '../../services/projectService.js';
 import { dashboardService } from '../../services/dashboardService.js';
 import { renderSalesChart } from '../../components/salesChart.js';
 import { renderSaleForm } from '../../components/saleForm.js';
-import { renderExpenseForm } from '../../components/expenseForm.js';
+import { renderExpenseForm, renderMultipleExpenseForm } from '../../components/expenseForm.js';
 import { renderInvoicePreview } from '../../components/invoicePreview.js';
 import { showModal } from '../../components/modal.js';
 import { showToast } from '../../utils/notifications.js';
@@ -421,6 +421,7 @@ export async function financePage() {
     container.innerHTML = `
       <div class="finance-actions">
         <button id="add-expense-btn" class="btn btn-primary"><i class="fas fa-plus"></i> Add Expense</button>
+        <button id="add-multiple-expenses-btn" class="btn btn-outline"><i class="fas fa-list"></i> Add Multiple Expenses</button>
         <button id="export-expenses-csv-btn" class="btn btn-outline"><i class="fas fa-download"></i> Export CSV</button>
       </div>
 
@@ -732,6 +733,14 @@ export async function financePage() {
       });
     });
 
+    // Add Multiple Expenses button
+    document.getElementById('add-multiple-expenses-btn').addEventListener('click', () => {
+      loadProjects().then(() => {
+        const { close } = showModal(renderMultipleExpenseForm(allProjects, exchangeRate));
+        attachMultiExpenseFormLogic(close);
+      });
+    });
+
     // Quick expense template buttons
     function attachQuickExpenseTemplates() {
       document.querySelectorAll('.quick-expense').forEach(btn => {
@@ -746,6 +755,112 @@ export async function financePage() {
           document.getElementById('expense-amount').value = amountUsd.toFixed(2);
         });
       });
+    }
+
+    // Multi expense form logic
+    function attachMultiExpenseFormLogic(close) {
+      const form = document.getElementById('multiple-expense-form');
+      const tbody = document.getElementById('multi-expense-tbody');
+      const totalSpan = document.getElementById('multi-expense-total');
+      const addRowBtn = document.getElementById('add-row-btn');
+      const paymentMethods = ['Cash', 'M-Pesa', 'Bank Transfer', 'PayPal', 'Card', 'Other'];
+
+      function updateTotal() {
+        let total = 0;
+        tbody.querySelectorAll('.expense-amount').forEach(input => {
+          const val = parseFloat(input.value) || 0;
+          total += val;
+        });
+        totalSpan.textContent = `$${total.toFixed(2)}`;
+      }
+
+      tbody.addEventListener('input', updateTotal);
+      updateTotal(); // initial total
+
+      addRowBtn.addEventListener('click', () => {
+        const index = Date.now();
+        const row = document.createElement('tr');
+        row.className = 'expense-row';
+        row.dataset.index = index;
+        row.innerHTML = `
+          <td>
+            <select name="category_${index}" class="form-control">
+              <option value="Hosting">Hosting</option>
+              <option value="Domain">Domain</option>
+              <option value="SSL Certificate">SSL Certificate</option>
+              <option value="Maintenance">Maintenance</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Software Licenses">Software Licenses</option>
+              <option value="Other">Other</option>
+            </select>
+          </td>
+          <td><input type="text" name="vendor_${index}" class="form-control" placeholder="Vendor"></td>
+          <td><input type="number" name="amount_${index}" class="form-control expense-amount" step="0.01" placeholder="0.00"></td>
+          <td>
+            <select name="payment_method_${index}" class="form-control">
+              ${paymentMethods.map(m => `<option value="${m}">${m}</option>`).join('')}
+            </select>
+          </td>
+          <td><button type="button" class="btn btn-sm btn-danger remove-row-btn"><i class="fas fa-trash"></i></button></td>
+        `;
+        tbody.appendChild(row);
+        updateTotal();
+      });
+
+      tbody.addEventListener('click', (e) => {
+        if (e.target.closest('.remove-row-btn')) {
+          const row = e.target.closest('tr');
+          row.remove();
+          updateTotal();
+        }
+      });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const projectId = document.getElementById('multi-expense-project').value;
+        if (!projectId) {
+          showToast('Please select a project.', 'error');
+          return;
+        }
+        const date = document.getElementById('multi-expense-date').value;
+        const rows = tbody.querySelectorAll('.expense-row');
+        const expensesToCreate = [];
+
+        rows.forEach(row => {
+          const idx = row.dataset.index;
+          const category = row.querySelector(`[name="category_${idx}"]`).value;
+          const vendor = row.querySelector(`[name="vendor_${idx}"]`).value;
+          const amount = parseFloat(row.querySelector(`[name="amount_${idx}"]`).value);
+          const paymentMethod = row.querySelector(`[name="payment_method_${idx}"]`).value;
+
+          if (amount > 0 && category) {
+            expensesToCreate.push({
+              project_id: projectId,
+              category,
+              vendor,
+              amount,
+              payment_method: paymentMethod,
+              expense_date: date,
+            });
+          }
+        });
+
+        if (expensesToCreate.length === 0) {
+          showToast('Please enter at least one expense amount.', 'error');
+          return;
+        }
+
+        try {
+          await Promise.all(expensesToCreate.map(exp => financeService.createExpense(exp)));
+          close();
+          showToast(`${expensesToCreate.length} expenses added`, 'success');
+          loadExpenses();
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+
+      document.querySelector('.cancel-multi-expense-btn')?.addEventListener('click', close);
     }
 
     document.getElementById('export-expenses-csv-btn').addEventListener('click', () => {
