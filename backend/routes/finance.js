@@ -13,6 +13,7 @@ router.get('/revenue/summary', ctrl.getRevenueSummary);
 
 // Expense routes
 router.get('/expenses', ctrl.getAllExpenses);
+router.get('/expenses/by-project/:projectId', ctrl.getProjectExpenses);
 router.post('/expenses', ctrl.createExpense);
 router.put('/expenses/:id', ctrl.updateExpense);
 router.delete('/expenses/:id', ctrl.deleteExpense);
