@@ -158,7 +158,6 @@ export async function serviceRecordPage() {
   }
 
   function updateProjectSummaryAndKPIs() {
-    // Show summary if project selected
     if (selectedProjectId) {
       projectSummary.classList.remove('hidden');
       summaryKpiContainer.classList.remove('hidden');
@@ -453,14 +452,14 @@ export async function serviceRecordPage() {
     const btn = e.target.closest('button');
     if (!btn) return;
     const row = e.target.closest('.timeline-item, tr');
-    const updateId = row?.dataset.id || (row ? row.dataset.id : null);
+    const updateId = row?.dataset.id;
     if (!updateId) return;
 
     if (btn.classList.contains('delete-update')) {
       const confirmed = await confirmDialog('Delete this service record?', 'Confirm Deletion');
       if (!confirmed) return;
       try {
-        await api(`/api/updates/${updateId}`, { method: 'DELETE' });
+        await api(`/api/projects/updates/${updateId}`, { method: 'DELETE' });
         showToast('Service record deleted', 'success');
         loadUpdates(selectedProjectId);
       } catch (err) {
@@ -480,7 +479,7 @@ export async function serviceRecordPage() {
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
         try {
-          await api(`/api/updates/${updateId}`, {
+          await api(`/api/projects/updates/${updateId}`, {
             method: 'PUT',
             body: JSON.stringify(data),
           });
