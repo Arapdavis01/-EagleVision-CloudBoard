@@ -13,6 +13,7 @@ const dashboardRoutes = require('./routes/dashboard');
 const alertRoutes = require('./routes/alerts');
 const uptimeRoutes = require('./routes/uptime');
 const publicRoutes = require('./routes/public');
+const uploadRoutes = require('./routes/upload');   // ✅ new upload route
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -32,6 +33,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/uptime', uptimeRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/upload', uploadRoutes);   // ✅ upload endpoint
 
 // Health check
 app.get('/health', (req, res) => res.send('OK'));
