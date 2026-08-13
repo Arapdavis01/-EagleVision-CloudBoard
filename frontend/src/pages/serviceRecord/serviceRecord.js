@@ -4,6 +4,7 @@ import { api } from '../../services/api.js';
 import { showModal } from '../../components/modal.js';
 import { renderUpdateForm } from '../../components/updateForm.js';
 import { showToast } from '../../utils/notifications.js';
+import { confirmDialog } from '../../utils/confirm.js';
 
 export async function serviceRecordPage() {
   document.body.classList.add('app-dashboard');
@@ -239,10 +240,11 @@ export async function serviceRecordPage() {
     if (!updateId) return;
 
     if (btn.classList.contains('delete-update')) {
-      if (!confirm('Delete this service record?')) return;
+      const confirmed = await confirmDialog('Delete this service record?', 'Confirm Deletion');
+      if (!confirmed) return;
       try {
         await api(`/api/updates/${updateId}`, { method: 'DELETE' });
-        showToast('Service record deleted', 'info');
+        showToast('Service record deleted', 'success');
         loadUpdates(selectedProjectId);
       } catch (err) {
         showToast(err.message, 'error');
