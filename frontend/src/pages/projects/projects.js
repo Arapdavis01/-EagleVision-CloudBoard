@@ -1,6 +1,6 @@
 import { renderSidebar, initSidebar } from '../../components/sidebar.js';
 import { projectService } from '../../services/projectService.js';
-import { uploadImage } from '../../services/uploadService.js';   // ✅ new
+import { uploadImage } from '../../services/uploadService.js';
 import { renderProjectCard } from '../../components/projectCard.js';
 import { showModal } from '../../components/modal.js';
 import { renderProjectForm } from '../../components/projectForm.js';
@@ -224,13 +224,27 @@ export async function projectsPage() {
     const form = document.getElementById('project-form');
     if (!form) return;
 
-    attachThumbnailUpload();   // ✅ attach file upload listener
-
     const cancelBtn = document.querySelector('.cancel-form-btn');
     if (cancelBtn) cancelBtn.addEventListener('click', () => close());
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      // 1) Handle image upload if a file was selected
+      const fileInput = document.getElementById('project-thumbnail-file');
+      const thumbnailUrlInput = document.getElementById('project-thumbnail');
+      if (fileInput && fileInput.files.length > 0) {
+        try {
+          showToast('Uploading image...', 'info');
+          const { url } = await uploadImage(fileInput.files[0]);
+          thumbnailUrlInput.value = url;
+        } catch (err) {
+          showToast(err.message, 'error');
+          return;
+        }
+      }
+
+      // 2) Collect form data and update project
       const formData = new FormData(form);
       const data = Object.fromEntries(formData.entries());
       try {
@@ -272,13 +286,27 @@ export async function projectsPage() {
     const form = document.getElementById('project-form');
     if (!form) return;
 
-    attachThumbnailUpload();   // ✅ attach file upload listener
-
     const cancelBtn = document.querySelector('.cancel-form-btn');
     if (cancelBtn) cancelBtn.addEventListener('click', () => close());
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      // 1) Handle image upload if a file was selected
+      const fileInput = document.getElementById('project-thumbnail-file');
+      const thumbnailUrlInput = document.getElementById('project-thumbnail');
+      if (fileInput && fileInput.files.length > 0) {
+        try {
+          showToast('Uploading image...', 'info');
+          const { url } = await uploadImage(fileInput.files[0]);
+          thumbnailUrlInput.value = url;
+        } catch (err) {
+          showToast(err.message, 'error');
+          return;
+        }
+      }
+
+      // 2) Collect form data and create project
       const formData = new FormData(form);
       const data = Object.fromEntries(formData.entries());
       try {
@@ -291,25 +319,6 @@ export async function projectsPage() {
       }
     });
   });
-
-  // Thumbnail upload handler
-  function attachThumbnailUpload() {
-    const fileInput = document.getElementById('project-thumbnail-file');
-    const thumbnailUrlInput = document.getElementById('project-thumbnail');
-    if (!fileInput || !thumbnailUrlInput) return;
-
-    fileInput.addEventListener('change', async () => {
-      if (fileInput.files.length === 0) return;
-      showToast('Uploading image...', 'info');
-      try {
-        const { url } = await uploadImage(fileInput.files[0]);
-        thumbnailUrlInput.value = url;
-        showToast('Image uploaded', 'success');
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
-    });
-  }
 
   searchInput.addEventListener('input', (e) => loadProjects(e.target.value));
 
