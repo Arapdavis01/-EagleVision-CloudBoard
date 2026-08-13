@@ -18,6 +18,7 @@ export const financeService = {
 
   // Expenses
   getExpenses: () => api('/api/finance/expenses'),
+  getExpensesByProject: (projectId) => api(`/api/finance/expenses/by-project/${projectId}`),
   createExpense: (data) => api('/api/finance/expenses', {
     method: 'POST',
     body: JSON.stringify(data),
