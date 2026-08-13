@@ -2031,3 +2031,236 @@ body.app-dashboard .service-record-header h2 {
     transform: translateX(0);
   }
 }
+/* ================================================================
+   SHOWCASE PAGE ENHANCEMENTS
+   ================================================================ */
+.showcase-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+.showcase-toolbar input,
+.showcase-toolbar select {
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--app-glass-border);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.8);
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.showcase-toolbar input:focus,
+.showcase-toolbar select:focus {
+  outline: none;
+  border-color: var(--app-primary);
+}
+
+/* Compact KPI stats header */
+.compact-stats {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.compact-stats .compact-kpi {
+  padding: 0.7rem 0.5rem;
+}
+.compact-stats .kpi-icon {
+  font-size: 1.4rem;
+}
+.compact-stats h3 {
+  font-size: 0.65rem;
+}
+.compact-stats .value {
+  font-size: 1.3rem;
+}
+
+/* Showcase card hover overlay & consistent 16:9 thumbnails */
+.showcase-thumbnail-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;       /* consistent ratio */
+  overflow: hidden;
+}
+.showcase-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: rgba(0,0,0,0.05);
+}
+.showcase-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(26,71,42,0.1), rgba(196,154,43,0.1));
+  color: var(--text-light);
+  font-size: 2rem;
+}
+
+.showcase-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.showcase-card:hover .showcase-overlay {
+  opacity: 1;
+}
+
+.showcase-tech {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Load More */
+.load-more-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+/* ================================================================
+   SERVICE RECORD ENHANCEMENTS
+   ================================================================ */
+.project-summary-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+.project-summary-header h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+/* Update type colors / badges */
+.update-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.type-feature {
+  background: #dcfce7;
+  color: #166534;
+}
+.type-bugfix {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.type-maintenance {
+  background: #fef3c7;
+  color: #92400e;
+}
+.type-upgrade {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.type-other {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* Timeline view */
+.timeline-container {
+  position: relative;
+  padding-left: 2rem;
+}
+.timeline-container::before {
+  content: '';
+  position: absolute;
+  left: 0.8rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(26,71,42,0.2);
+}
+.timeline-item {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+.timeline-icon {
+  position: absolute;
+  left: -2rem;
+  top: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-glass-bg);
+  border: 1px solid var(--app-glass-border);
+  box-shadow: var(--shadow-sm);
+  z-index: 1;
+}
+.timeline-content {
+  background: var(--app-glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--app-glass-border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+.timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.timeline-header strong {
+  font-size: 1rem;
+  color: var(--text);
+}
+.timeline-content p {
+  color: var(--text-light);
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+.timeline-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+.timeline-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.timeline-meta .actions-cell {
+  margin-left: auto;
+}
+
+/* View toggle active state already exists, but ensure button base */
+.view-toggle .btn {
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.view-toggle .btn.active {
+  background: var(--app-primary);
+  color: white;
+  border-color: var(--app-primary);
+}
