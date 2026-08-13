@@ -93,6 +93,103 @@ export function renderExpenseForm(expense = {}, projects = []) {
   `;
 }
 
+/**
+ * Render a multi‑expense form for recording multiple expenses for one project at once.
+ * @param {Array} projects - list of all projects for the dropdown
+ * @param {number} exchangeRate - current exchange rate (KES per USD)
+ */
+export function renderMultipleExpenseForm(projects, exchangeRate) {
+  const paymentMethods = ['Cash', 'M-Pesa', 'Bank Transfer', 'PayPal', 'Card', 'Other'];
+  const commonRows = [
+    { category: 'Domain', vendor: 'GoDaddy', amountKsh: 1000 },
+    { category: 'Hosting', vendor: 'Render', amountKsh: 500 },
+    { category: 'SSL Certificate', vendor: 'SSL Provider', amountKsh: 2500 },
+    { category: 'Maintenance', vendor: 'Maintenance', amountKsh: 1500 },
+  ];
+
+  const projectOptions = projects
+    .map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`)
+    .join('');
+
+  const defaultRows = commonRows.map((row, index) => {
+    const amountUsd = (row.amountKsh / exchangeRate).toFixed(2);
+    return `
+      <tr class="expense-row" data-index="${index}">
+        <td>
+          <select name="category_${index}" class="form-control">
+            <option value="${row.category}" selected>${row.category}</option>
+            <option value="Hosting">Hosting</option>
+            <option value="Domain">Domain</option>
+            <option value="SSL Certificate">SSL Certificate</option>
+            <option value="Maintenance">Maintenance</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Software Licenses">Software Licenses</option>
+            <option value="Other">Other</option>
+          </select>
+        </td>
+        <td><input type="text" name="vendor_${index}" class="form-control" value="${row.vendor}" placeholder="Vendor"></td>
+        <td><input type="number" name="amount_${index}" class="form-control expense-amount" step="0.01" value="${amountUsd}" placeholder="0.00"></td>
+        <td>
+          <select name="payment_method_${index}" class="form-control">
+            ${paymentMethods.map(m => `<option value="${m}" ${m === 'Cash' ? 'selected' : ''}>${m}</option>`).join('')}
+          </select>
+        </td>
+        <td><button type="button" class="btn btn-sm btn-danger remove-row-btn"><i class="fas fa-trash"></i></button></td>
+      </tr>
+    `;
+  }).join('');
+
+  return `
+    <div class="form-header">
+      <h2>Record Multiple Expenses</h2>
+    </div>
+    <form id="multiple-expense-form" class="modern-form">
+      <div class="form-group">
+        <label for="multi-expense-project"><i class="fas fa-folder-open"></i> Project <span class="required">*</span></label>
+        <select id="multi-expense-project" name="project_id" required>
+          <option value="">-- Select Project --</option>
+          ${projectOptions}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label><i class="fas fa-calendar-alt"></i> Expense Date</label>
+        <input type="date" id="multi-expense-date" name="expense_date" value="${new Date().toISOString().slice(0,10)}" required>
+      </div>
+
+      <div class="table-container" style="margin-bottom:1rem;">
+        <table class="summary-table multi-expense-table" id="multi-expense-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Vendor / Provider</th>
+              <th>Amount ($)</th>
+              <th>Payment Method</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="multi-expense-tbody">
+            ${defaultRows}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="multi-expense-footer">
+        <button type="button" id="add-row-btn" class="btn btn-outline btn-sm"><i class="fas fa-plus"></i> Add Row</button>
+        <div class="multi-total">
+          <strong>Total:</strong> <span id="multi-expense-total">$0.00</span>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline cancel-multi-expense-btn"><i class="fas fa-arrow-left"></i> Back</button>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save All</button>
+      </div>
+    </form>
+  `;
+}
+
+// Helper functions
 function escapeAttr(str) {
   return str ? str.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 }
