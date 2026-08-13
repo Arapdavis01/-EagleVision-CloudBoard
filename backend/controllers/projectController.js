@@ -24,22 +24,25 @@ exports.create = async (req, res) => {
   const {
     name, client, live_url, github, hosting, location, description,
     tech_stack, tags, next_review_date, thumbnail_url, status,
-    project_type, for_sale, asking_price
+    project_type, domain_name, registrar, expiry_date, auto_renew,
+    for_sale, asking_price
   } = req.body;
 
-  // Convert for_sale to boolean
   const isForSale = for_sale === true || for_sale === 'true';
   const askingPrice = asking_price ? parseFloat(asking_price) : null;
+  const autoRenew = auto_renew === true || auto_renew === 'true';
 
   const { rows } = await pool.query(
     `INSERT INTO projects
      (name, client, live_url, github, hosting, location, description, tech_stack, tags,
-      next_review_date, thumbnail_url, status, project_type, for_sale, asking_price)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      next_review_date, thumbnail_url, status, project_type, domain_name, registrar, expiry_date,
+      auto_renew, for_sale, asking_price)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
      RETURNING *`,
     [name, client, live_url, github, hosting, location, description,
      JSON.stringify(tech_stack || []), tags || '', next_review_date, thumbnail_url,
-     status || 'Planning', project_type || 'Other', isForSale, askingPrice]
+     status || 'Planning', project_type || 'Other', domain_name || null, registrar || null,
+     expiry_date || null, autoRenew, isForSale, askingPrice]
   );
   res.status(201).json(rows[0]);
 };
@@ -49,23 +52,26 @@ exports.update = async (req, res) => {
   const {
     name, client, live_url, github, hosting, location, description,
     tech_stack, tags, next_review_date, thumbnail_url, status,
-    project_type, for_sale, asking_price
+    project_type, domain_name, registrar, expiry_date, auto_renew,
+    for_sale, asking_price
   } = req.body;
 
-  // Convert for_sale to boolean
   const isForSale = for_sale === true || for_sale === 'true';
   const askingPrice = asking_price ? parseFloat(asking_price) : null;
+  const autoRenew = auto_renew === true || auto_renew === 'true';
 
   const { rows } = await pool.query(
     `UPDATE projects SET
      name = $1, client = $2, live_url = $3, github = $4, hosting = $5, location = $6,
      description = $7, tech_stack = $8, tags = $9, next_review_date = $10,
      thumbnail_url = $11, status = $12, last_updated = NOW(),
-     project_type = $13, for_sale = $14, asking_price = $15
-     WHERE id = $16 RETURNING *`,
+     project_type = $13, domain_name = $14, registrar = $15, expiry_date = $16,
+     auto_renew = $17, for_sale = $18, asking_price = $19
+     WHERE id = $20 RETURNING *`,
     [name, client, live_url, github, hosting, location, description,
      JSON.stringify(tech_stack || []), tags || '', next_review_date, thumbnail_url,
-     status, project_type || 'Other', isForSale, askingPrice, id]
+     status, project_type || 'Other', domain_name || null, registrar || null,
+     expiry_date || null, autoRenew, isForSale, askingPrice, id]
   );
   if (rows.length === 0) return res.status(404).json({ error: 'Project not found' });
   res.json(rows[0]);
