@@ -14,6 +14,9 @@ router.post('/:projectId/updates', ctrl.createProjectUpdate);
 router.put('/updates/:id', ctrl.updateProjectUpdate);
 router.delete('/updates/:id', ctrl.deleteProjectUpdate);
 
+// Combined review & update action
+router.post('/:projectId/review-and-update', ctrl.reviewAndUpdate);
+
 // Project single item operations
 router.get('/:id', ctrl.getOne);
 router.put('/:id', ctrl.update);
