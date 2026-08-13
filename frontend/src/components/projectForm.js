@@ -61,7 +61,7 @@ export function renderProjectForm(project = {}) {
       <div class="form-row">
         <div class="form-group">
           <label for="project-next-review"><i class="fas fa-calendar-alt"></i> Next Review Date</label>
-          <input type="date" id="project-next-review" name="next_review_date" value="${project.next_review_date || ''}">
+          <input type="date" id="project-next-review" name="next_review_date" value="${formatDateInput(project.next_review_date)}">
         </div>
         <div class="form-group">
           <label for="project-thumbnail"><i class="fas fa-image"></i> Thumbnail URL</label>
@@ -104,7 +104,7 @@ export function renderProjectForm(project = {}) {
       <div class="form-row">
         <div class="form-group">
           <label for="project-expiry-date"><i class="fas fa-calendar-times"></i> Expiry Date</label>
-          <input type="date" id="project-expiry-date" name="expiry_date" value="${project.expiry_date || ''}">
+          <input type="date" id="project-expiry-date" name="expiry_date" value="${formatDateInput(project.expiry_date)}">
         </div>
         <div class="form-group checkbox-group">
           <label>
@@ -141,8 +141,18 @@ export function renderProjectForm(project = {}) {
 function escapeAttr(str) {
   return str ? str.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 }
+
 function escapeHtml(str) {
   return str ? str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+}
+
+// Format date string to yyyy-MM-dd for input[type="date"]
+function formatDateInput(dateStr) {
+  if (!dateStr) return '';
+  if (typeof dateStr === 'string' && dateStr.includes('T')) {
+    return dateStr.slice(0, 10);
+  }
+  return dateStr;
 }
 
 // All 47 Kenya counties
