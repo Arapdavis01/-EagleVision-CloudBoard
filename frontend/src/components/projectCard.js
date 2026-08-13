@@ -25,6 +25,7 @@ export function renderProjectCard(project, view = 'grid') {
           <button class="btn quick-view-project" data-id="${project.id}"><i class="fas fa-eye"></i> Quick View</button>
           <button class="btn edit-project" data-id="${project.id}"><i class="fas fa-edit"></i> Edit</button>
           <button class="btn copy-link" data-token="${project.public_token || ''}"><i class="fas fa-link"></i> Copy Link</button>
+          <button class="btn service-record-project" data-id="${project.id}" title="Service Record"><i class="fas fa-history"></i></button>
           <button class="btn btn-danger delete-project" data-id="${project.id}"><i class="fas fa-trash"></i> Delete</button>
         </div>
       </div>
@@ -42,6 +43,7 @@ export function renderProjectCard(project, view = 'grid') {
             <button class="btn quick-view-project" data-id="${project.id}"><i class="fas fa-eye"></i></button>
             <button class="btn edit-project" data-id="${project.id}"><i class="fas fa-edit"></i></button>
             <button class="btn copy-link" data-token="${project.public_token || ''}"><i class="fas fa-link"></i></button>
+            <button class="btn service-record-project" data-id="${project.id}" title="Service Record"><i class="fas fa-history"></i></button>
             <button class="btn btn-danger delete-project" data-id="${project.id}"><i class="fas fa-trash"></i></button>
           </div>
         </div>
