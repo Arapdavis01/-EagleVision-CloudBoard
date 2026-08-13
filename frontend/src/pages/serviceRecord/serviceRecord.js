@@ -1,6 +1,5 @@
 import { renderSidebar, initSidebar } from '../../components/sidebar.js';
 import { projectService } from '../../services/projectService.js';
-import { api } from '../../services/api.js';
 import { showModal } from '../../components/modal.js';
 import { renderUpdateForm } from '../../components/updateForm.js';
 import { renderReviewUpdateForm } from '../../components/reviewUpdateForm.js';
@@ -16,12 +15,14 @@ export async function serviceRecordPage() {
     <div class="main-content">
       <div class="service-record-header">
         <h2>Service Record</h2>
-        <button id="add-update-btn" class="btn btn-primary" disabled>
-          <i class="fas fa-plus"></i> Add Update
-        </button>
-        <button id="review-update-btn" class="btn btn-outline" disabled>
-          <i class="fas fa-sync-alt"></i> Review & Update
-        </button>
+        <div class="service-record-actions">
+          <button id="add-update-btn" class="btn btn-primary" disabled>
+            <i class="fas fa-plus"></i> Add Update
+          </button>
+          <button id="review-update-btn" class="btn btn-outline" disabled>
+            <i class="fas fa-sync-alt"></i> Review & Update
+          </button>
+        </div>
       </div>
 
       <div class="service-record-toolbar">
@@ -149,7 +150,7 @@ export async function serviceRecordPage() {
   async function loadUpdates(projectId) {
     if (!projectId) return;
     try {
-      allUpdates = await api(`/api/projects/${projectId}/updates`);
+      allUpdates = await projectService.getUpdates(projectId);
       updateProjectSummaryAndKPIs();
       renderUpdates();
     } catch (err) {
@@ -423,10 +424,11 @@ export async function serviceRecordPage() {
     if (!selectedProjectId) return;
     const { close } = showModal(renderUpdateForm(selectedProjectId));
     const form = document.getElementById('update-form');
+    if (!form) return;
 
     document.querySelector('.cancel-update-btn')?.addEventListener('click', () => close());
 
-    form?.addEventListener('submit', async (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
       const data = Object.fromEntries(formData.entries());
@@ -441,7 +443,6 @@ export async function serviceRecordPage() {
     });
   });
 
-  // ✅ Review & Update button
   reviewUpdateBtn.addEventListener('click', () => {
     if (!selectedProjectId) return;
     const project = allProjects.find(p => p.id == selectedProjectId);
@@ -491,10 +492,11 @@ export async function serviceRecordPage() {
 
       const { close } = showModal(renderUpdateForm(selectedProjectId, update));
       const form = document.getElementById('update-form');
+      if (!form) return;
 
       document.querySelector('.cancel-update-btn')?.addEventListener('click', () => close());
 
-      form?.addEventListener('submit', async (e) => {
+      form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
