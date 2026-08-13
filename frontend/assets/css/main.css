@@ -1958,42 +1958,76 @@ body.app-dashboard .service-record-header h2 {
 }
 
 /* ================================================================
-   TOAST NOTIFICATIONS (top‑right modern style)
+   TOAST NOTIFICATIONS – Top-Right Modern Classic
+   (replaces all previous .toast rules)
    ================================================================ */
-.toast {
+.toast,
+.toast.toast-success,
+.toast.toast-error,
+.toast.toast-info {
   position: fixed;
   top: 24px;
   right: 24px;
+  bottom: auto;               /* override old bottom value */
+  left: auto;
   display: flex;
   align-items: center;
-  gap: 0.7rem;
-  background: var(--app-glass-bg, #ffffff);
-  backdrop-filter: blur(10px);
+  gap: 0.8rem;
+  background: #ffffff;
+  backdrop-filter: blur(12px);
   color: var(--text);
-  padding: 0.9rem 1.2rem;
+  padding: 0.9rem 1.5rem;
   border-radius: 12px;
   z-index: 9999;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-  border: 1px solid var(--app-glass-border, #e2e8f0);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--primary);
   font-weight: 500;
-  animation: toastSlideIn 0.3s ease;
+  font-size: 0.95rem;
+  animation: toastSlideIn 0.35s cubic-bezier(0.21, 1.02, 0.73, 1);
 }
 
-.toast-icon {
-  font-size: 1.2rem;
+/* Colored left border per type */
+.toast.toast-success {
+  border-left-color: var(--success);
+}
+.toast.toast-error {
+  border-left-color: var(--error);
+}
+.toast.toast-info {
+  border-left-color: var(--primary);
 }
 
-.toast-success .toast-icon { color: var(--success); }
-.toast-error .toast-icon { color: var(--error); }
-.toast-info .toast-icon { color: var(--primary); }
+/* Icon styling */
+.toast .toast-icon {
+  font-size: 1.4rem;
+  color: var(--primary);
+}
+.toast.toast-success .toast-icon {
+  color: var(--success);
+}
+.toast.toast-error .toast-icon {
+  color: var(--error);
+}
+.toast.toast-info .toast-icon {
+  color: var(--primary);
+}
 
-.toast-hidden {
+/* Fade-out hidden state */
+.toast.toast-hidden {
   opacity: 0;
-  transform: translateX(20px);
+  transform: translateX(40px);
   transition: opacity 0.3s, transform 0.3s;
 }
 
+/* Slide-in animation */
 @keyframes toastSlideIn {
-  from { opacity: 0; transform: translateX(30px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
