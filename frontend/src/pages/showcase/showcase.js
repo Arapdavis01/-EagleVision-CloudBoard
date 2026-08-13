@@ -1,5 +1,7 @@
 import { renderSidebar, initSidebar } from '../../components/sidebar.js';
 import { projectService } from '../../services/projectService.js';
+import { financeService } from '../../services/financeService.js';
+import { dashboardService } from '../../services/dashboardService.js';
 import { renderShowcaseCard } from '../../components/showcaseCard.js';
 import { showModal } from '../../components/modal.js';
 import { showToast } from '../../utils/notifications.js';
@@ -26,8 +28,17 @@ export async function showcasePage() {
   const escapeHtml = (text) =>
     text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 
-  // Store all projects for quick lookup without extra API calls
   let allProjects = [];
+  let exchangeRate = 129;
+
+  async function loadExchangeRate() {
+    try {
+      const prefs = await dashboardService.getPreferences();
+      exchangeRate = prefs.exchange_rate || 129;
+    } catch (err) {
+      console.warn('Could not load exchange rate', err);
+    }
+  }
 
   async function loadShowcase() {
     const grid = document.getElementById('showcase-grid');
@@ -55,14 +66,34 @@ export async function showcasePage() {
     openProjectDetails(projectId);
   });
 
-  function openProjectDetails(projectId) {
+  async function openProjectDetails(projectId) {
     const project = allProjects.find(p => p.id == projectId);
     if (!project) {
       showToast('Project not found.', 'error');
       return;
     }
 
-    // Safely parse tech stack
+    // Load financial summary for this project
+    let projectExpenses = [];
+    let allRevenue = [];
+    try {
+      [projectExpenses, allRevenue] = await Promise.all([
+        financeService.getExpensesByProject(projectId),
+        financeService.getRevenue()
+      ]);
+    } catch (err) {
+      console.warn('Could not load financial data:', err);
+      projectExpenses = [];
+      allRevenue = [];
+    }
+
+    const totalExpenses = projectExpenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
+    const projectRevenue = allRevenue
+      .filter(s => s.project_id == projectId)
+      .reduce((sum, s) => sum + parseFloat(s.amount), 0);
+    const netProfit = projectRevenue - totalExpenses;
+    const askingPrice = project.asking_price ? parseFloat(project.asking_price) : 0;
+
     const techStack = parseTechStack(project.tech_stack).join(', ') || '—';
 
     const content = `
@@ -84,16 +115,54 @@ export async function showcasePage() {
         <div><strong>Project Type:</strong> ${escapeHtml(project.project_type) || '—'}</div>
         <div><strong>Last Updated:</strong> ${project.last_updated ? new Date(project.last_updated).toLocaleString() : '—'}</div>
       </div>
+
+      <hr class="form-divider">
+      <h3><i class="fas fa-calculator"></i> Cost Summary</h3>
+      <div class="cost-summary-grid">
+        <div><strong>Total Expenses:</strong> $${totalExpenses.toLocaleString()} (KSh ${(totalExpenses * exchangeRate).toLocaleString()})</div>
+        <div><strong>Total Revenue:</strong> $${projectRevenue.toLocaleString()} (KSh ${(projectRevenue * exchangeRate).toLocaleString()})</div>
+        <div><strong>Net Profit:</strong> $${netProfit.toLocaleString()} (KSh ${(netProfit * exchangeRate).toLocaleString()})</div>
+        <div><strong>Asking Price:</strong> $${askingPrice.toLocaleString()} (KSh ${(askingPrice * exchangeRate).toLocaleString()})</div>
+      </div>
+
       <div class="form-group">
         <strong>Description:</strong>
         <p>${escapeHtml(project.description) || 'No description.'}</p>
       </div>
+
       <div class="form-actions">
+        <button class="btn btn-outline print-cost-summary-btn"><i class="fas fa-print"></i> Print Statement</button>
         <button id="close-showcase-modal-btn" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Back</button>
       </div>
     `;
+
     const { close } = showModal(content);
+
     document.getElementById('close-showcase-modal-btn')?.addEventListener('click', close);
+
+    document.querySelector('.print-cost-summary-btn')?.addEventListener('click', () => {
+      const printContent = `
+        <html>
+          <head><title>Project Cost Summary</title></head>
+          <body style="font-family: sans-serif; padding: 20px;">
+            <h1>${escapeHtml(project.name)}</h1>
+            <p><strong>Client:</strong> ${escapeHtml(project.client) || '—'}</p>
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+              <tr><th>Metric</th><th>USD</th><th>KES (${exchangeRate})</th></tr>
+              <tr><td>Total Expenses</td><td>$${totalExpenses.toLocaleString()}</td><td>KSh ${(totalExpenses * exchangeRate).toLocaleString()}</td></tr>
+              <tr><td>Total Revenue</td><td>$${projectRevenue.toLocaleString()}</td><td>KSh ${(projectRevenue * exchangeRate).toLocaleString()}</td></tr>
+              <tr><td>Net Profit</td><td>$${netProfit.toLocaleString()}</td><td>KSh ${(netProfit * exchangeRate).toLocaleString()}</td></tr>
+              <tr><td>Asking Price</td><td>$${askingPrice.toLocaleString()}</td><td>KSh ${(askingPrice * exchangeRate).toLocaleString()}</td></tr>
+            </table>
+            <p><em>Generated by EagleVision CloudBoard</em></p>
+          </body>
+        </html>
+      `;
+      const win = window.open('', '_blank');
+      win.document.write(printContent);
+      win.document.close();
+      win.print();
+    });
   }
 
   // Safe parser that always returns an array
@@ -114,5 +183,6 @@ export async function showcasePage() {
   }
 
   // Initial load
+  await loadExchangeRate();
   loadShowcase();
 }
