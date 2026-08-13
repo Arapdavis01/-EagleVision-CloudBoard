@@ -27,12 +27,15 @@ export async function dashboardPage() {
         </div>
       </div>
 
+      <!-- KPI cards row (5 equal columns) -->
       <div id="kpi-container" class="kpi-grid">
         ${renderPlaceholderKPIs()}
       </div>
 
+      <!-- Pending revenue card (conditional) -->
       <div id="pending-revenue-container"></div>
 
+      <!-- Row 1: Chart + Reviews -->
       <div class="dashboard-row">
         <div class="card chart-card compact-chart">
           <h3><i class="fas fa-chart-pie"></i> Status Breakdown</h3>
@@ -44,6 +47,7 @@ export async function dashboardPage() {
         </div>
       </div>
 
+      <!-- Row 2: County breakdown + Projects for sale -->
       <div class="dashboard-row">
         <div id="county-breakdown-container" class="card compact-card"></div>
         <div id="for-sale-container" class="card compact-card"></div>
@@ -258,7 +262,7 @@ function renderProjectRows(projects) {
   `).join('');
 }
 
-// --- Overdue Reviews Modal (now with Review & Update) ---
+// --- Overdue Reviews Modal (with nested Review & Update) ---
 async function showOverdueSummaryModal() {
   const overdue = await dashboardService.getOverdueReviews().catch(() => []);
   const now = new Date();
@@ -288,20 +292,23 @@ async function showOverdueSummaryModal() {
       </table>
     </div>
   `;
-  showModal(content);
+
+  const parentModal = showModal(content);
 
   document.querySelectorAll('.review-update-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const projectId = btn.dataset.id;
-      const project = { id: projectId };
-      // Fetch full project data if needed
+      // Close parent modal to avoid stacking
+      parentModal.close();
+
       const fullProject = await projectService.getOne(projectId).catch(() => null);
-      const projectForForm = fullProject || project;
-      const { close } = showModal(renderReviewUpdateForm(projectForForm));
+      const projectForForm = fullProject || { id: projectId };
+
+      const childModal = showModal(renderReviewUpdateForm(projectForForm));
       const form = document.getElementById('review-update-form');
       if (!form) return;
 
-      document.querySelector('.cancel-review-update-btn')?.addEventListener('click', () => close());
+      document.querySelector('.cancel-review-update-btn')?.addEventListener('click', () => childModal.close());
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -309,7 +316,7 @@ async function showOverdueSummaryModal() {
         const data = Object.fromEntries(formData.entries());
         try {
           await projectService.reviewAndUpdate(projectId, data);
-          close();
+          childModal.close();
           showToast('Review & update saved', 'success');
           refreshDashboard();
         } catch (err) {
@@ -492,7 +499,7 @@ function renderOverdueReviewsCompact(overdue) {
       ${overdue.map(r => {
         const dueDate = new Date(r.next_review_date);
         const daysOverdue = Math.floor((now - dueDate) / (1000 * 60 * 60 * 24));
-        return `<li><strong>${r.name}</strong> <span class="badge badge-overdue">${daysOverdue}d</span></li>`;
+        return `<li><strong>${escapeHtml(r.name)}</strong> <span class="badge badge-overdue">${daysOverdue}d</span></li>`;
       }).join('')}
     </ul>
   `;
@@ -503,7 +510,7 @@ function renderUpcomingReviewsCompact(upcoming) {
   return `
     <h4><i class="fas fa-calendar-alt"></i> Upcoming</h4>
     <ul class="compact-list">
-      ${upcoming.map(r => `<li><strong>${r.name}</strong> – ${new Date(r.next_review_date).toLocaleDateString()}</li>`).join('')}
+      ${upcoming.map(r => `<li><strong>${escapeHtml(r.name)}</strong> – ${new Date(r.next_review_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</li>`).join('')}
     </ul>
   `;
 }
@@ -513,7 +520,7 @@ function renderCountyBreakdown(counties) {
   return `
     <h3><i class="fas fa-map-marker-alt"></i> Top Counties</h3>
     <ul class="compact-list">
-      ${counties.map(c => `<li><span>${c.location}</span> <strong>${c.project_count}</strong></li>`).join('')}
+      ${counties.map(c => `<li><span>${escapeHtml(c.location)}</span> <strong>${c.project_count}</strong></li>`).join('')}
     </ul>
   `;
 }
@@ -525,7 +532,7 @@ function renderForSaleProjectsCompact(forSale) {
   return `
     <h3><i class="fas fa-tag"></i> For Sale</h3>
     <ul class="compact-list">
-      ${forSale.map(p => `<li><span>${p.name}</span> <strong>$${p.asking_price ? Number(p.asking_price).toLocaleString() : '0'}</strong></li>`).join('')}
+      ${forSale.map(p => `<li><span>${escapeHtml(p.name)}</span> <strong>$${p.asking_price ? Number(p.asking_price).toLocaleString() : '0'}</strong></li>`).join('')}
     </ul>
   `;
 }
