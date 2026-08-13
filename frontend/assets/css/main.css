@@ -1928,3 +1928,72 @@ body.app-dashboard .service-record-header h2 {
   border-radius: 6px;
   font-size: 0.95rem;
 }
+/* ================================================================
+   MODERN CONFIRM DIALOG
+   ================================================================ */
+.confirm-dialog {
+  text-align: center;
+  padding: 1rem;
+}
+.confirm-dialog .confirm-icon {
+  font-size: 2.5rem;
+  color: var(--warning);
+  margin-bottom: 1rem;
+}
+.confirm-dialog h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+.confirm-dialog p {
+  color: var(--text-light);
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+.confirm-actions {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+}
+
+/* ================================================================
+   TOAST NOTIFICATIONS (top‑right modern style)
+   ================================================================ */
+.toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: var(--app-glass-bg, #ffffff);
+  backdrop-filter: blur(10px);
+  color: var(--text);
+  padding: 0.9rem 1.2rem;
+  border-radius: 12px;
+  z-index: 9999;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+  border: 1px solid var(--app-glass-border, #e2e8f0);
+  font-weight: 500;
+  animation: toastSlideIn 0.3s ease;
+}
+
+.toast-icon {
+  font-size: 1.2rem;
+}
+
+.toast-success .toast-icon { color: var(--success); }
+.toast-error .toast-icon { color: var(--error); }
+.toast-info .toast-icon { color: var(--primary); }
+
+.toast-hidden {
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
