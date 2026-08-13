@@ -64,8 +64,12 @@ export function renderProjectForm(project = {}) {
           <input type="date" id="project-next-review" name="next_review_date" value="${formatDateInput(project.next_review_date)}">
         </div>
         <div class="form-group">
-          <label for="project-thumbnail"><i class="fas fa-image"></i> Thumbnail URL</label>
+          <label for="project-thumbnail"><i class="fas fa-image"></i> Thumbnail</label>
           <input id="project-thumbnail" name="thumbnail_url" value="${escapeAttr(project.thumbnail_url) || ''}" placeholder="https://...">
+          <label for="project-thumbnail-file" class="btn btn-outline btn-sm" style="margin-top:0.5rem;">
+            <i class="fas fa-upload"></i> Upload Image
+          </label>
+          <input type="file" id="project-thumbnail-file" accept="image/*" style="display:none;">
         </div>
       </div>
 
@@ -141,7 +145,6 @@ export function renderProjectForm(project = {}) {
 function escapeAttr(str) {
   return str ? str.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 }
-
 function escapeHtml(str) {
   return str ? str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 }
