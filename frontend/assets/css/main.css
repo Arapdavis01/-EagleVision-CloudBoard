@@ -2326,3 +2326,9 @@ body.app-dashboard .service-record-header h2 {
   padding-top: 1rem;
   margin-top: 1.5rem;
 }
+/* Service record action buttons wrapper */
+.service-record-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
