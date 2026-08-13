@@ -182,6 +182,9 @@ export async function projectsPage() {
       handleCopyLink(btn.dataset.token);
     } else if (btn.classList.contains('quick-view-project')) {
       handleQuickView(projectId);
+    } else if (btn.classList.contains('service-record-project')) {
+      // Navigate to Service Record page with project preselected
+      location.hash = `#service-record?project_id=${projectId}`;
     }
   });
 
@@ -212,8 +215,19 @@ export async function projectsPage() {
         <strong>Description:</strong>
         <p>${escapeHtml(project.description) || 'No description.'}</p>
       </div>
+      <div class="form-actions">
+        <button class="btn btn-outline service-record-from-modal" data-id="${project.id}">
+          <i class="fas fa-history"></i> Service Record
+        </button>
+        <button class="btn btn-outline" id="close-quick-view-btn"><i class="fas fa-arrow-left"></i> Back</button>
+      </div>
     `;
-    showModal(content);
+    const { close } = showModal(content);
+    document.getElementById('close-quick-view-btn')?.addEventListener('click', close);
+    document.querySelector('.service-record-from-modal')?.addEventListener('click', () => {
+      close();
+      location.hash = `#service-record?project_id=${projectId}`;
+    });
   }
 
   async function handleEdit(projectId) {
@@ -230,7 +244,6 @@ export async function projectsPage() {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // 1) Handle image upload if a file was selected
       const fileInput = document.getElementById('project-thumbnail-file');
       const thumbnailUrlInput = document.getElementById('project-thumbnail');
       if (fileInput && fileInput.files.length > 0) {
@@ -244,7 +257,6 @@ export async function projectsPage() {
         }
       }
 
-      // 2) Collect form data and update project
       const formData = new FormData(form);
       const data = Object.fromEntries(formData.entries());
       try {
@@ -292,7 +304,6 @@ export async function projectsPage() {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // 1) Handle image upload if a file was selected
       const fileInput = document.getElementById('project-thumbnail-file');
       const thumbnailUrlInput = document.getElementById('project-thumbnail');
       if (fileInput && fileInput.files.length > 0) {
@@ -306,7 +317,6 @@ export async function projectsPage() {
         }
       }
 
-      // 2) Collect form data and create project
       const formData = new FormData(form);
       const data = Object.fromEntries(formData.entries());
       try {
