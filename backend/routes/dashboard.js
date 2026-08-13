@@ -16,5 +16,6 @@ router.get('/clients-summary', ctrl.getClientsSummary);
 router.get('/revenue-summary', ctrl.getRevenueSummary);
 router.get('/preferences', ctrl.getPreferences);
 router.put('/preferences', ctrl.updatePreferences);
+router.get('/expiring-domains', ctrl.getExpiringDomains);
 
 module.exports = router;
