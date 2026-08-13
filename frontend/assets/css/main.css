@@ -1754,3 +1754,87 @@ body.app-dashboard .quick-view-grid strong {
   background: #dcfce7;
   color: #166534;
 }
+/* ================================================================
+   PROJECT SHOWCASE PAGE
+   ================================================================ */
+body.app-dashboard .showcase-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+body.app-dashboard .showcase-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.showcase-card {
+  background: var(--app-glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--app-glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--app-glass-shadow);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.showcase-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(26, 71, 42, 0.2);
+}
+
+.showcase-thumbnail {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  background: rgba(0,0,0,0.05);
+}
+
+.showcase-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 180px;
+  background: linear-gradient(135deg, rgba(26,71,42,0.1), rgba(196,154,43,0.1));
+  color: var(--text-light);
+  font-size: 2rem;
+}
+
+.showcase-info {
+  padding: 1rem;
+}
+.showcase-info h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+  color: var(--text);
+}
+.showcase-info p {
+  font-size: 0.9rem;
+  color: var(--text-light);
+  margin-bottom: 0.5rem;
+}
+
+/* Adjust KPI grid to 5 columns for dashboard */
+body.app-dashboard .kpi-grid {
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+  flex-shrink: 0;
+}
+
+/* Responsive: fallback to 2 columns on smaller screens */
+@media (max-width: 900px) {
+  body.app-dashboard .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
