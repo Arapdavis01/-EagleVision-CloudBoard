@@ -150,3 +150,15 @@ exports.updatePreferences = async (req, res) => {
   );
   res.json({ exchange_rate: newRate });
 };
+
+// 11. Expiring domains within the next 30 days
+exports.getExpiringDomains = async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT id, name, client, domain_name, registrar, expiry_date
+     FROM projects
+     WHERE expiry_date IS NOT NULL
+       AND expiry_date <= CURRENT_DATE + INTERVAL '30 days'
+     ORDER BY expiry_date ASC`
+  );
+  res.json(rows);
+};
