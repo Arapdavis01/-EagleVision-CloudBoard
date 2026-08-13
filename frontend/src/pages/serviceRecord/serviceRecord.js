@@ -3,6 +3,7 @@ import { projectService } from '../../services/projectService.js';
 import { api } from '../../services/api.js';
 import { showModal } from '../../components/modal.js';
 import { renderUpdateForm } from '../../components/updateForm.js';
+import { renderReviewUpdateForm } from '../../components/reviewUpdateForm.js';
 import { showToast } from '../../utils/notifications.js';
 import { confirmDialog } from '../../utils/confirm.js';
 
@@ -17,6 +18,9 @@ export async function serviceRecordPage() {
         <h2>Service Record</h2>
         <button id="add-update-btn" class="btn btn-primary" disabled>
           <i class="fas fa-plus"></i> Add Update
+        </button>
+        <button id="review-update-btn" class="btn btn-outline" disabled>
+          <i class="fas fa-sync-alt"></i> Review & Update
         </button>
       </div>
 
@@ -40,7 +44,7 @@ export async function serviceRecordPage() {
         </button>
       </div>
 
-      <!-- Project Summary Header (hidden until project selected) -->
+      <!-- Project Summary Header -->
       <div id="project-summary" class="card compact-card hidden">
         <div class="project-summary-header">
           <h3 id="summary-project-name"></h3>
@@ -49,7 +53,7 @@ export async function serviceRecordPage() {
         </div>
       </div>
 
-      <!-- Summary KPI Cards (hidden until project selected) -->
+      <!-- Summary KPI Cards -->
       <div id="summary-kpi-container" class="kpi-grid hidden">
         <div class="card kpi-card compact-kpi">
           <i class="fas fa-clipboard-list kpi-icon"></i>
@@ -73,7 +77,7 @@ export async function serviceRecordPage() {
         </div>
       </div>
 
-      <!-- View Toggle (Timeline/Table) -->
+      <!-- View Toggle -->
       <div class="view-toggle" style="margin-bottom:0.5rem;">
         <button id="view-table-btn" class="btn btn-sm active"><i class="fas fa-table"></i> Table</button>
         <button id="view-timeline-btn" class="btn btn-sm"><i class="fas fa-stream"></i> Timeline</button>
@@ -102,10 +106,11 @@ export async function serviceRecordPage() {
   let typeFilter = 'all';
   let dateFrom = '';
   let dateTo = '';
-  let currentView = 'table';  // 'table' or 'timeline'
+  let currentView = 'table';
 
   const projectSelect = document.getElementById('project-select');
   const addUpdateBtn = document.getElementById('add-update-btn');
+  const reviewUpdateBtn = document.getElementById('review-update-btn');
   const updatesContainer = document.getElementById('updates-container');
   const searchInput = document.getElementById('update-search');
   const typeFilterSelect = document.getElementById('type-filter');
@@ -118,7 +123,6 @@ export async function serviceRecordPage() {
   const projectSummary = document.getElementById('project-summary');
   const summaryKpiContainer = document.getElementById('summary-kpi-container');
 
-  // Load all projects for dropdown
   async function loadProjects() {
     try {
       allProjects = await projectService.getAll();
@@ -127,13 +131,13 @@ export async function serviceRecordPage() {
         ${allProjects.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')}
       `;
 
-      // Pre-select from URL query
       const params = new URLSearchParams(location.hash.split('?')[1] || '');
       const preselected = params.get('project_id');
       if (preselected) {
         projectSelect.value = preselected;
         selectedProjectId = preselected;
         addUpdateBtn.disabled = false;
+        reviewUpdateBtn.disabled = false;
         await loadUpdates(preselected);
       }
     } catch (err) {
@@ -318,10 +322,10 @@ export async function serviceRecordPage() {
     }
   }
 
-  // Event: project select change
   projectSelect.addEventListener('change', async () => {
     selectedProjectId = projectSelect.value;
     addUpdateBtn.disabled = !selectedProjectId;
+    reviewUpdateBtn.disabled = !selectedProjectId;
     searchTerm = '';
     typeFilter = 'all';
     dateFrom = '';
@@ -338,19 +342,16 @@ export async function serviceRecordPage() {
     }
   });
 
-  // Event: search input
   searchInput.addEventListener('input', e => {
     searchTerm = e.target.value;
     renderUpdates();
   });
 
-  // Event: type filter
   typeFilterSelect.addEventListener('change', e => {
     typeFilter = e.target.value;
     renderUpdates();
   });
 
-  // Event: date filters
   dateFromInput.addEventListener('change', e => {
     dateFrom = e.target.value;
     renderUpdates();
@@ -360,7 +361,6 @@ export async function serviceRecordPage() {
     renderUpdates();
   });
 
-  // Event: clear filters
   clearBtn.addEventListener('click', () => {
     searchInput.value = '';
     typeFilterSelect.value = 'all';
@@ -373,7 +373,6 @@ export async function serviceRecordPage() {
     renderUpdates();
   });
 
-  // View toggle events
   viewTableBtn.addEventListener('click', () => {
     currentView = 'table';
     viewTableBtn.classList.add('active');
@@ -388,7 +387,6 @@ export async function serviceRecordPage() {
     renderUpdates();
   });
 
-  // Print record
   printBtn.addEventListener('click', () => {
     if (!selectedProjectId) return showToast('Select a project first.', 'error');
     const filtered = getFilteredUpdates();
@@ -421,7 +419,6 @@ export async function serviceRecordPage() {
     win.print();
   });
 
-  // Event: Add Update button
   addUpdateBtn.addEventListener('click', () => {
     if (!selectedProjectId) return;
     const { close } = showModal(renderUpdateForm(selectedProjectId));
@@ -434,10 +431,7 @@ export async function serviceRecordPage() {
       const formData = new FormData(form);
       const data = Object.fromEntries(formData.entries());
       try {
-        await api(`/api/projects/${selectedProjectId}/updates`, {
-          method: 'POST',
-          body: JSON.stringify(data),
-        });
+        await projectService.createUpdate(selectedProjectId, data);
         close();
         showToast('Service record added', 'success');
         loadUpdates(selectedProjectId);
@@ -447,7 +441,33 @@ export async function serviceRecordPage() {
     });
   });
 
-  // Event delegation for edit/delete update actions
+  // ✅ Review & Update button
+  reviewUpdateBtn.addEventListener('click', () => {
+    if (!selectedProjectId) return;
+    const project = allProjects.find(p => p.id == selectedProjectId);
+    if (!project) return showToast('Project not found', 'error');
+
+    const { close } = showModal(renderReviewUpdateForm(project));
+    const form = document.getElementById('review-update-form');
+    if (!form) return;
+
+    document.querySelector('.cancel-review-update-btn')?.addEventListener('click', () => close());
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+      try {
+        await projectService.reviewAndUpdate(selectedProjectId, data);
+        close();
+        showToast('Review & update saved', 'success');
+        loadUpdates(selectedProjectId);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  });
+
   updatesContainer.addEventListener('click', async (e) => {
     const btn = e.target.closest('button');
     if (!btn) return;
@@ -459,7 +479,7 @@ export async function serviceRecordPage() {
       const confirmed = await confirmDialog('Delete this service record?', 'Confirm Deletion');
       if (!confirmed) return;
       try {
-        await api(`/api/projects/updates/${updateId}`, { method: 'DELETE' });
+        await projectService.deleteUpdate(updateId);
         showToast('Service record deleted', 'success');
         loadUpdates(selectedProjectId);
       } catch (err) {
@@ -479,10 +499,7 @@ export async function serviceRecordPage() {
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
         try {
-          await api(`/api/projects/updates/${updateId}`, {
-            method: 'PUT',
-            body: JSON.stringify(data),
-          });
+          await projectService.updateUpdate(updateId, data);
           close();
           showToast('Service record updated', 'success');
           loadUpdates(selectedProjectId);
@@ -493,6 +510,5 @@ export async function serviceRecordPage() {
     }
   });
 
-  // Initial load
   loadProjects();
 }
