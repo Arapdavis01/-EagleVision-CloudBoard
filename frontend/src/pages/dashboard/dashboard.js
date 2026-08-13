@@ -36,7 +36,7 @@ export async function dashboardPage() {
       <div id="pending-revenue-container"></div>
 
       <!-- Row 1: Chart + Reviews -->
-      <div class="dashboard-row">
+      <div class="dashboard-row chart-review-row">
         <div class="card chart-card compact-chart">
           <h3><i class="fas fa-chart-pie"></i> Status Breakdown</h3>
           <canvas id="statusChartCanvas"></canvas>
@@ -298,7 +298,6 @@ async function showOverdueSummaryModal() {
   document.querySelectorAll('.review-update-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const projectId = btn.dataset.id;
-      // Close parent modal to avoid stacking
       parentModal.close();
 
       const fullProject = await projectService.getOne(projectId).catch(() => null);
