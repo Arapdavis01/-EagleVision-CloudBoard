@@ -175,3 +175,47 @@ exports.deleteProjectUpdate = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete project update' });
   }
 };
+
+// ==================== REVIEW & UPDATE (COMBINED ACTION) ====================
+
+// Create a project update AND update the project's next_review_date/status
+exports.reviewAndUpdate = async (req, res) => {
+  const { projectId } = req.params;
+  const { update_type, title, description, cost, next_review_date, status } = req.body;
+
+  if (!title || !update_type) {
+    return res.status(400).json({ error: 'Update type and title are required' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1. Insert new project update
+    const { rows: updateRows } = await client.query(
+      `INSERT INTO project_updates (project_id, update_type, title, description, cost)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [projectId, update_type, title, description || null, cost || null]
+    );
+
+    // 2. Update project next_review_date and status (if provided)
+    await client.query(
+      `UPDATE projects
+       SET next_review_date = $1,
+           status = COALESCE($2, status),
+           last_updated = NOW()
+       WHERE id = $3`,
+      [next_review_date || null, status || null, projectId]
+    );
+
+    await client.query('COMMIT');
+    res.status(201).json(updateRows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'Failed to complete review & update' });
+  } finally {
+    client.release();
+  }
+};
