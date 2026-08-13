@@ -1838,3 +1838,93 @@ body.app-dashboard .kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+/* ================================================================
+   SERVICE RECORD PAGE
+   ================================================================ */
+body.app-dashboard .service-record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+body.app-dashboard .service-record-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.service-record-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.service-record-toolbar select,
+.service-record-toolbar input {
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--app-glass-border);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.8);
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.service-record-toolbar select:focus,
+.service-record-toolbar input:focus {
+  outline: none;
+  border-color: var(--app-primary);
+}
+
+.update-type-badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: rgba(26,71,42,0.1);
+  color: var(--app-primary);
+}
+
+/* Cost summary grid (Showcase modal) */
+.cost-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+.cost-summary-grid div {
+  background: rgba(26,71,42,0.05);
+  padding: 0.8rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+.cost-summary-grid strong {
+  display: block;
+  color: var(--app-primary);
+  font-size: 0.8rem;
+  margin-bottom: 0.2rem;
+}
+
+/* Quick expense templates */
+.expense-templates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+.templates-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-light);
+}
+
+/* Project update form textarea */
+.project-update-form textarea {
+  width: 100%;
+  padding: 0.7rem;
+  border: 1px solid var(--app-glass-border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
