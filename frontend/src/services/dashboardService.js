@@ -16,4 +16,5 @@ export const dashboardService = {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
+  getExpiringDomains: () => api('/api/dashboard/expiring-domains'),
 };
