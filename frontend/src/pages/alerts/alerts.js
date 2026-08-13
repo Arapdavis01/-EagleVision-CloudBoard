@@ -1,6 +1,7 @@
 import { renderSidebar, initSidebar } from '../../components/sidebar.js';
 import { uptimeService } from '../../services/uptimeService.js';
 import { projectService } from '../../services/projectService.js';
+import { dashboardService } from '../../services/dashboardService.js';
 import { showModal } from '../../components/modal.js';
 import { showToast } from '../../utils/notifications.js';
 
@@ -27,7 +28,7 @@ export async function alertsPage() {
         <button id="clear-alerts-search-btn" class="btn btn-outline btn-sm"><i class="fas fa-times"></i> Clear</button>
       </div>
 
-      <!-- Alerts Table -->
+      <!-- Alerts Table (Uptime) -->
       <div class="table-container card">
         <table id="alerts-table" class="summary-table">
           <thead>
@@ -40,7 +41,7 @@ export async function alertsPage() {
             </tr>
           </thead>
           <tbody id="alerts-tbody">
-            <tr><td colspan="5" class="empty-state">Loading alerts…</td></tr>
+            <tr><td colspan="5" class="empty-state">Loading uptime alerts…</td></tr>
           </tbody>
         </table>
       </div>
@@ -50,6 +51,33 @@ export async function alertsPage() {
         <i class="fas fa-check-circle fa-3x" style="color:var(--success)"></i>
         <p>All systems are up. No down projects.</p>
       </div>
+
+      <hr class="section-divider" style="margin: 1.5rem 0;">
+
+      <!-- Domain Expiry Alerts Section -->
+      <div class="alerts-header">
+        <h3><i class="fas fa-globe"></i> Domain Expiry Alerts</h3>
+      </div>
+      <div class="table-container card">
+        <table id="domain-expiry-table" class="summary-table">
+          <thead>
+            <tr>
+              <th>Project</th>
+              <th>Domain</th>
+              <th>Registrar</th>
+              <th>Expiry Date</th>
+              <th>Days Left</th>
+            </tr>
+          </thead>
+          <tbody id="domain-expiry-tbody">
+            <tr><td colspan="5" class="empty-state">Loading domain expiries…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="domain-expiry-empty" class="empty-state hidden">
+        <i class="fas fa-calendar-check fa-3x" style="color:var(--success)"></i>
+        <p>No domains expiring soon.</p>
+      </div>
     </div>
   `;
 
@@ -58,6 +86,7 @@ export async function alertsPage() {
   // State
   let alerts = [];
   let projects = [];
+  let expiringDomains = [];
   let sortField = 'checked_at';
   let sortDir = 'desc';
   let searchTerm = '';
@@ -66,6 +95,8 @@ export async function alertsPage() {
   const emptyState = document.getElementById('alerts-empty-state');
   const kpiContainer = document.getElementById('alerts-kpi-container');
   const searchInput = document.getElementById('alerts-search');
+  const domainTbody = document.getElementById('domain-expiry-tbody');
+  const domainEmpty = document.getElementById('domain-expiry-empty');
 
   // Helpers
   const escapeHtml = (text) =>
@@ -81,19 +112,22 @@ export async function alertsPage() {
 
   async function loadAlerts() {
     try {
-      [alerts, projects] = await Promise.all([
+      [alerts, projects, expiringDomains] = await Promise.all([
         uptimeService.getAlerts(),
         projectService.getAll().catch(() => []),
+        dashboardService.getExpiringDomains().catch(() => []),
       ]);
     } catch (err) {
       console.error('Failed to load alerts:', err);
       showToast('Failed to load alerts.', 'error');
       alerts = [];
       projects = [];
+      expiringDomains = [];
     }
 
     updateKPIs(alerts, projects);
     applyFiltersAndSort();
+    renderDomainExpiryTable();
   }
 
   function updateKPIs(alertsList, projectList) {
@@ -194,6 +228,30 @@ export async function alertsPage() {
     `).join('');
   }
 
+  function renderDomainExpiryTable() {
+    if (expiringDomains.length === 0) {
+      domainTbody.innerHTML = `<tr><td colspan="5" class="empty-state">No domains expiring soon.</td></tr>`;
+      domainEmpty.classList.add('hidden');
+      return;
+    }
+
+    const now = new Date();
+    domainTbody.innerHTML = expiringDomains.map(d => {
+      const expiry = new Date(d.expiry_date);
+      const daysLeft = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+      return `
+        <tr>
+          <td><strong>${escapeHtml(d.name)}</strong></td>
+          <td>${escapeHtml(d.domain_name) || '—'}</td>
+          <td>${escapeHtml(d.registrar) || '—'}</td>
+          <td>${new Date(d.expiry_date).toLocaleDateString()}</td>
+          <td><span class="badge ${daysLeft <= 7 ? 'badge-overdue' : 'badge-due-soon'}">${daysLeft} day${daysLeft !== 1 ? 's' : ''}</span></td>
+        </tr>
+      `;
+    }).join('');
+    domainEmpty.classList.add('hidden');
+  }
+
   // Event: search
   searchInput.addEventListener('input', e => {
     searchTerm = e.target.value;
@@ -208,7 +266,8 @@ export async function alertsPage() {
 
   // Event: refresh button
   document.getElementById('refresh-alerts-btn').addEventListener('click', () => {
-    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Loading alerts…</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Loading uptime alerts…</td></tr>`;
+    domainTbody.innerHTML = `<tr><td colspan="5" class="empty-state">Loading domain expiries…</td></tr>`;
     loadAlerts();
   });
 
