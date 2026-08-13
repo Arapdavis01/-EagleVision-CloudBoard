@@ -17,8 +17,71 @@ export async function showcasePage() {
         <h2>Project Showcase</h2>
         <button id="refresh-showcase-btn" class="btn btn-outline"><i class="fas fa-sync-alt"></i> Refresh</button>
       </div>
+
+      <!-- KPI Stats Header -->
+      <div id="showcase-stats" class="kpi-grid compact-stats">
+        <div class="card kpi-card compact-kpi">
+          <i class="fas fa-folder-open kpi-icon"></i>
+          <h3>Total Projects</h3>
+          <div class="value" id="stat-total">0</div>
+        </div>
+        <div class="card kpi-card compact-kpi">
+          <i class="fas fa-rocket kpi-icon"></i>
+          <h3>Live</h3>
+          <div class="value" id="stat-live">0</div>
+        </div>
+        <div class="card kpi-card compact-kpi">
+          <i class="fas fa-code kpi-icon"></i>
+          <h3>Development</h3>
+          <div class="value" id="stat-development">0</div>
+        </div>
+        <div class="card kpi-card compact-kpi">
+          <i class="fas fa-wrench kpi-icon"></i>
+          <h3>Maintenance</h3>
+          <div class="value" id="stat-maintenance">0</div>
+        </div>
+      </div>
+
+      <!-- Search & Filter Bar -->
+      <div class="showcase-toolbar">
+        <input type="text" id="showcase-search" placeholder="Search by name or client...">
+        <select id="showcase-status-filter" class="sort-select">
+          <option value="all">All Status</option>
+          <option value="Planning">Planning</option>
+          <option value="Development">Development</option>
+          <option value="Live">Live</option>
+          <option value="Maintenance">Maintenance</option>
+          <option value="Archived">Archived</option>
+        </select>
+        <select id="showcase-type-filter" class="sort-select">
+          <option value="all">All Types</option>
+          <option value="Website">Website</option>
+          <option value="Web Application">Web Application</option>
+          <option value="Mobile App">Mobile App</option>
+          <option value="Desktop App">Desktop App</option>
+          <option value="API / Backend">API / Backend</option>
+          <option value="Other">Other</option>
+        </select>
+        <select id="showcase-sort" class="sort-select">
+          <option value="name-asc">Name A–Z</option>
+          <option value="name-desc">Name Z–A</option>
+          <option value="client-asc">Client A–Z</option>
+          <option value="updated-desc">Last Updated (newest)</option>
+          <option value="updated-asc">Last Updated (oldest)</option>
+        </select>
+        <button id="clear-showcase-filters-btn" class="btn btn-outline btn-sm">
+          <i class="fas fa-times"></i> Clear
+        </button>
+      </div>
+
+      <!-- Grid -->
       <div id="showcase-grid" class="showcase-grid">
         <p class="empty-state">Loading projects…</p>
+      </div>
+
+      <!-- Load More -->
+      <div id="load-more-container" class="load-more-wrapper hidden">
+        <button id="load-more-btn" class="btn btn-outline">Load More</button>
       </div>
     </div>
   `;
@@ -28,8 +91,22 @@ export async function showcasePage() {
   const escapeHtml = (text) =>
     text ? text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
 
+  // State
   let allProjects = [];
   let exchangeRate = 129;
+  let currentPage = 1;
+  const pageSize = 8;
+  let filteredProjects = [];
+
+  // UI elements
+  const searchInput = document.getElementById('showcase-search');
+  const statusFilter = document.getElementById('showcase-status-filter');
+  const typeFilter = document.getElementById('showcase-type-filter');
+  const sortSelect = document.getElementById('showcase-sort');
+  const clearBtn = document.getElementById('clear-showcase-filters-btn');
+  const grid = document.getElementById('showcase-grid');
+  const loadMoreContainer = document.getElementById('load-more-container');
+  const loadMoreBtn = document.getElementById('load-more-btn');
 
   async function loadExchangeRate() {
     try {
@@ -41,14 +118,10 @@ export async function showcasePage() {
   }
 
   async function loadShowcase() {
-    const grid = document.getElementById('showcase-grid');
     try {
       allProjects = await projectService.getAll();
-      if (allProjects.length === 0) {
-        grid.innerHTML = `<p class="empty-state"><i class="fas fa-folder-open fa-3x"></i><br>No projects found.</p>`;
-        return;
-      }
-      grid.innerHTML = allProjects.map(p => renderShowcaseCard(p)).join('');
+      updateStats(allProjects);
+      applyFiltersAndSort();
     } catch (err) {
       console.error('Failed to load showcase:', err);
       showToast('Failed to load projects.', 'error');
@@ -56,10 +129,115 @@ export async function showcasePage() {
     }
   }
 
-  document.getElementById('refresh-showcase-btn').addEventListener('click', loadShowcase);
+  function updateStats(projects) {
+    document.getElementById('stat-total').textContent = projects.length;
+    document.getElementById('stat-live').textContent = projects.filter(p => p.status === 'Live').length;
+    document.getElementById('stat-development').textContent = projects.filter(p => p.status === 'Development').length;
+    document.getElementById('stat-maintenance').textContent = projects.filter(p => p.status === 'Maintenance').length;
+  }
+
+  function applyFiltersAndSort() {
+    const term = searchInput.value.toLowerCase();
+    const status = statusFilter.value;
+    const type = typeFilter.value;
+    const sort = sortSelect.value;
+
+    filteredProjects = allProjects.filter(p => {
+      const matchesSearch =
+        !term ||
+        (p.name || '').toLowerCase().includes(term) ||
+        (p.client || '').toLowerCase().includes(term);
+      const matchesStatus = status === 'all' || p.status === status;
+      const matchesType = type === 'all' || p.project_type === type;
+      return matchesSearch && matchesStatus && matchesType;
+    });
+
+    // Sort
+    filteredProjects.sort((a, b) => {
+      const nameA = (a.name || '').toLowerCase();
+      const nameB = (b.name || '').toLowerCase();
+      const clientA = (a.client || '').toLowerCase();
+      const clientB = (b.client || '').toLowerCase();
+      const updatedA = new Date(a.last_updated || 0);
+      const updatedB = new Date(b.last_updated || 0);
+
+      switch (sort) {
+        case 'name-asc': return nameA.localeCompare(nameB);
+        case 'name-desc': return nameB.localeCompare(nameA);
+        case 'client-asc': return clientA.localeCompare(clientB);
+        case 'client-desc': return clientB.localeCompare(clientA);
+        case 'updated-desc': return updatedB - updatedA;
+        case 'updated-asc': return updatedA - updatedB;
+        default: return 0;
+      }
+    });
+
+    currentPage = 1;
+    renderGrid();
+  }
+
+  function renderGrid() {
+    const start = 0;
+    const end = currentPage * pageSize;
+    const pageItems = filteredProjects.slice(start, end);
+
+    if (pageItems.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-folder-open fa-3x"></i>
+          <p>No projects found.</p>
+        </div>`;
+      loadMoreContainer.classList.add('hidden');
+      return;
+    }
+
+    grid.innerHTML = pageItems.map(p => renderShowcaseCard(p)).join('');
+
+    // Show/hide Load More button
+    if (end < filteredProjects.length) {
+      loadMoreContainer.classList.remove('hidden');
+    } else {
+      loadMoreContainer.classList.add('hidden');
+    }
+  }
+
+  // Event listeners for filters
+  searchInput.addEventListener('input', applyFiltersAndSort);
+  statusFilter.addEventListener('change', applyFiltersAndSort);
+  typeFilter.addEventListener('change', applyFiltersAndSort);
+  sortSelect.addEventListener('change', applyFiltersAndSort);
+
+  clearBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    statusFilter.value = 'all';
+    typeFilter.value = 'all';
+    sortSelect.value = 'name-asc';
+    applyFiltersAndSort();
+  });
+
+  document.getElementById('refresh-showcase-btn').addEventListener('click', async () => {
+    grid.innerHTML = '<p class="empty-state">Loading projects…</p>';
+    await loadShowcase();
+  });
+
+  // Load More
+  loadMoreBtn.addEventListener('click', () => {
+    currentPage += 1;
+    const start = (currentPage - 1) * pageSize;
+    const end = currentPage * pageSize;
+    const pageItems = filteredProjects.slice(start, end);
+
+    if (pageItems.length > 0) {
+      grid.insertAdjacentHTML('beforeend', pageItems.map(p => renderShowcaseCard(p)).join(''));
+    }
+
+    if (end >= filteredProjects.length) {
+      loadMoreContainer.classList.add('hidden');
+    }
+  });
 
   // Card click → open detail modal using in‑memory data
-  document.getElementById('showcase-grid').addEventListener('click', (e) => {
+  grid.addEventListener('click', (e) => {
     const card = e.target.closest('.showcase-card');
     if (!card) return;
     const projectId = card.dataset.id;
@@ -73,7 +251,6 @@ export async function showcasePage() {
       return;
     }
 
-    // Load financial summary for this project
     let projectExpenses = [];
     let allRevenue = [];
     try {
@@ -165,7 +342,6 @@ export async function showcasePage() {
     });
   }
 
-  // Safe parser that always returns an array
   function parseTechStack(tech) {
     if (!tech) return [];
     if (Array.isArray(tech)) return tech;
@@ -184,5 +360,5 @@ export async function showcasePage() {
 
   // Initial load
   await loadExchangeRate();
-  loadShowcase();
+  await loadShowcase();
 }
