@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/db');
 const { jwtSecret, jwtExpiresIn } = require('../config/auth');
+const loginSessionService = require('../services/loginSessionService');
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -65,14 +66,10 @@ exports.generateLoginSession = async (req, res) => {
   const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes
 
   try {
-    await pool.query(
-      `INSERT INTO login_sessions (session_token, status, expires_at)
-       VALUES ($1, 'pending', $2)`,
-      [sessionToken, expiresAt]
-    );
+    const session = await loginSessionService.createSession(sessionToken, expiresAt);
     res.status(201).json({
-      session_token: sessionToken,
-      expires_at: expiresAt,
+      session_token: session.session_token,
+      expires_at: session.expires_at,
     });
   } catch (err) {
     console.error(err);
@@ -88,19 +85,15 @@ exports.checkLoginSessionStatus = async (req, res) => {
   const { token } = req.params;
 
   try {
-    const { rows } = await pool.query(
-      `SELECT * FROM login_sessions WHERE session_token = $1`,
-      [token]
-    );
+    const session = await loginSessionService.getSessionByToken(token);
 
-    if (rows.length === 0) {
+    if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    const session = rows[0];
-
     // Check expiry
     if (new Date(session.expires_at) < new Date()) {
+      await loginSessionService.markSessionExpired(token);
       return res.json({ status: 'expired' });
     }
 
@@ -109,7 +102,6 @@ exports.checkLoginSessionStatus = async (req, res) => {
     }
 
     if (session.status === 'approved' && session.admin_id) {
-      // Issue JWT to laptop
       const { rows: adminRows } = await pool.query(
         `SELECT id, email FROM admins WHERE id = $1`,
         [session.admin_id]
@@ -126,10 +118,7 @@ exports.checkLoginSessionStatus = async (req, res) => {
       );
 
       // Mark session as used (single‑use)
-      await pool.query(
-        `UPDATE login_sessions SET status = 'used' WHERE session_token = $1`,
-        [token]
-      );
+      await loginSessionService.markSessionUsed(token);
 
       return res.json({
         status: 'approved',
@@ -155,18 +144,14 @@ exports.approveLoginSession = async (req, res) => {
   const adminId = req.adminId;   // from auth middleware
 
   try {
-    const { rows } = await pool.query(
-      `SELECT * FROM login_sessions WHERE session_token = $1`,
-      [token]
-    );
+    const session = await loginSessionService.getSessionByToken(token);
 
-    if (rows.length === 0) {
+    if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    const session = rows[0];
-
     if (new Date(session.expires_at) < new Date()) {
+      await loginSessionService.markSessionExpired(token);
       return res.status(400).json({ error: 'Session expired' });
     }
 
@@ -174,12 +159,7 @@ exports.approveLoginSession = async (req, res) => {
       return res.status(400).json({ error: `Session already ${session.status}` });
     }
 
-    await pool.query(
-      `UPDATE login_sessions SET status = 'approved', admin_id = $1
-       WHERE session_token = $2`,
-      [adminId, token]
-    );
-
+    await loginSessionService.approveSession(token, adminId);
     res.json({ message: 'Login approved' });
   } catch (err) {
     console.error(err);
