@@ -5,6 +5,10 @@ export async function loginPage() {
   const app = document.getElementById('app');
   app.innerHTML = '';
 
+  // Determine if the current device is mobile (hide QR login on mobile)
+  const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+
+  // Build the login form HTML
   const loginHTML = `
     <div class="login-wrapper modern-login">
       <div class="login-card">
@@ -39,6 +43,7 @@ export async function loginPage() {
           </button>
         </form>
 
+        ${!isMobile ? `
         <div class="login-divider">
           <span>or</span>
         </div>
@@ -46,6 +51,7 @@ export async function loginPage() {
         <button id="qr-login-btn" class="btn btn-outline btn-block">
           <i class="fas fa-qrcode"></i> Login with QR Code
         </button>
+        ` : ''}
 
         <div class="login-footer">
           <p>&copy; 2026 EagleVision CloudBoard</p>
@@ -97,8 +103,10 @@ export async function loginPage() {
     }
   });
 
-  // QR Login button
-  document.getElementById('qr-login-btn').addEventListener('click', startQrLogin);
+  // QR Login (only on desktop)
+  if (!isMobile) {
+    document.getElementById('qr-login-btn').addEventListener('click', startQrLogin);
+  }
 
   let qrModal = null;
   let pollInterval = null;
