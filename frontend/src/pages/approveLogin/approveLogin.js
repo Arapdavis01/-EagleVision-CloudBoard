@@ -25,44 +25,27 @@ export async function approveLoginPage() {
     return;
   }
 
-  // Check if user is logged in on this device (phone)
-  let isAuthenticated = false;
-  try {
-    const session = await authService.checkSession();
-    isAuthenticated = session && session.authenticated;
-  } catch (err) {
-    // Not logged in
-    isAuthenticated = false;
-  }
-
-  if (!isAuthenticated) {
-    app.innerHTML = `
-      <div class="approve-login-wrapper">
-        <div class="approve-login-card">
-          <div class="approve-login-header">
-            <i class="fas fa-user-lock"></i>
-            <h1>Login Required</h1>
-            <p>Please log in on your phone first, then scan the QR code again.</p>
-          </div>
-          <a href="#login" class="btn btn-primary btn-block">Go to Login</a>
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  // Show approval UI
+  // Show approval UI with PIN input (no login required)
   app.innerHTML = `
     <div class="approve-login-wrapper">
       <div class="approve-login-card">
         <div class="approve-login-header">
           <i class="fas fa-shield-alt"></i>
           <h1>Approve Login?</h1>
-          <p>A new browser is trying to sign in using QR code. If this was you, approve the login.</p>
+          <p>A new browser is trying to sign in using QR code. Enter your secret PIN to approve.</p>
         </div>
-        <div class="device-info">
-          <p><strong>Device:</strong> ${navigator.userAgent.includes('Mobile') ? 'Mobile Phone' : 'Desktop'}</p>
-          <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+        <div class="pin-input-container">
+          <input 
+            type="password" 
+            id="approve-pin-input" 
+            class="pin-input" 
+            maxlength="6" 
+            inputmode="numeric" 
+            pattern="[0-9]*" 
+            placeholder="••••••" 
+            autocomplete="one-time-code"
+            required
+          />
         </div>
         <div class="approve-actions">
           <button id="approve-login-btn" class="btn btn-primary btn-block">Approve</button>
@@ -73,25 +56,42 @@ export async function approveLoginPage() {
   `;
 
   document.getElementById('approve-login-btn').addEventListener('click', async () => {
+    const pinInput = document.getElementById('approve-pin-input');
+    const pin = pinInput.value.trim();
+
+    // Basic validation: exactly 6 digits
+    if (!/^\d{6}$/.test(pin)) {
+      showToast('Please enter a valid 6‑digit PIN', 'error');
+      pinInput.focus();
+      return;
+    }
+
     try {
-      await authService.approveLoginSession(sessionToken);
+      await authService.approveLoginSession(sessionToken, pin);
       showToast('Login approved successfully', 'success');
-      // Optionally show success state
       document.getElementById('approve-login-btn').disabled = true;
       document.getElementById('approve-login-btn').innerHTML = '<i class="fas fa-check"></i> Approved';
       setTimeout(() => {
-        location.hash = '#dashboard';  // or close tab if possible
+        // Try to close the tab; fallback to login page
+        window.close();
+        // If window.close() is blocked, redirect after a short delay
+        setTimeout(() => {
+          location.hash = '#login';
+        }, 500);
       }, 1500);
     } catch (err) {
       showToast(err.message || 'Approval failed', 'error');
+      pinInput.value = '';
+      pinInput.focus();
     }
   });
 
   document.getElementById('deny-login-btn').addEventListener('click', () => {
-    // Close the page or show message
     showToast('Login denied', 'info');
-    setTimeout(() => window.close(), 1000);  // may not work in all browsers; fallback:
-    // Or simply redirect to login page
-    // location.hash = '#login';
+    setTimeout(() => window.close(), 1000);
+    // Fallback in case window.close() is blocked
+    setTimeout(() => {
+      location.hash = '#login';
+    }, 1500);
   });
 }
