@@ -8,7 +8,7 @@ router.post('/login', ctrl.login);
 // QR code login
 router.post('/qr/session', ctrl.generateLoginSession);                 // start QR session (public)
 router.get('/qr/session/:token/status', ctrl.checkLoginSessionStatus); // laptop polls this (public)
-router.post('/qr/session/:token/approve', authMiddleware, ctrl.approveLoginSession); // phone approves (authenticated)
+router.post('/qr/session/:token/approve', ctrl.approveLoginSession);   // phone approves with PIN (public, no auth)
 
 // Standard logout & session check
 router.post('/logout', authMiddleware, ctrl.logout);
