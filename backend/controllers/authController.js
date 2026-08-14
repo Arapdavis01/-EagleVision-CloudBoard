@@ -10,11 +10,13 @@ exports.login = async (req, res) => {
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required.' });
   }
+
   try {
     const { rows } = await pool.query('SELECT * FROM admins WHERE email = $1', [email]);
     if (rows.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+
     const admin = rows[0];
     const match = await bcrypt.compare(password, admin.password_hash);
     if (!match) {
@@ -34,12 +36,15 @@ exports.login = async (req, res) => {
       maxAge: 2 * 60 * 60 * 1000
     });
 
-    await pool.query(
+    // Send response immediately
+    res.json({ message: 'Login successful', email: admin.email, token });
+
+    // Fire-and-forget audit log – do not block the response
+    pool.query(
       'INSERT INTO admin_audit_logs (admin_id, action, details) VALUES ($1, $2, $3)',
       [admin.id, 'LOGIN', `Login at ${new Date().toISOString()}`]
-    );
+    ).catch(err => console.error('Audit log insert failed:', err));
 
-    res.json({ message: 'Login successful', email: admin.email, token });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
