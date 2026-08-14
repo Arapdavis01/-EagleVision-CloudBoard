@@ -39,7 +39,10 @@ export const authService = {
   checkLoginSessionStatus: (sessionToken) =>
     api(`/api/auth/qr/session/${sessionToken}/status`),
 
-  // Step 3: Approve session from authenticated phone
-  approveLoginSession: (sessionToken) =>
-    api(`/api/auth/qr/session/${sessionToken}/approve`, { method: 'POST' }),
+  // Step 3: Approve session from phone (no auth, only PIN required)
+  approveLoginSession: (sessionToken, pin) =>
+    api(`/api/auth/qr/session/${sessionToken}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ pin })
+    }),
 };
