@@ -2369,3 +2369,208 @@ body.app-dashboard .chart-review-row .compact-chart canvas {
     max-height: 180px;
   }
 }
+/* ================================================================
+   MODERN LOGIN PAGE & QR LOGIN
+   ================================================================ */
+
+/* Override old dark login background */
+.login-wrapper.modern-login {
+  background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #e0f2fe 100%);
+}
+
+/* Modern login card */
+.modern-login .login-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  max-width: 420px;
+}
+
+.modern-login .login-logo {
+  width: 70px;
+  height: 70px;
+  margin: 0 auto 1rem;
+  background: linear-gradient(135deg, #1a472a, #c49a2b);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: white;
+}
+
+.modern-login .login-header h1 {
+  color: #1e293b;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.modern-login .login-subtitle {
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.modern-login .form-group label {
+  color: #1e293b;
+}
+
+.modern-login .form-group input[type="email"],
+.modern-login .form-group input[type="password"],
+.modern-login .form-group input[type="text"] {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+}
+
+.modern-login .form-group input:focus {
+  border-color: #1a472a;
+  box-shadow: 0 0 0 3px rgba(26, 71, 42, 0.2);
+}
+
+.modern-login .toggle-password {
+  color: #64748b;
+}
+
+.modern-login .toggle-password:hover {
+  color: #1a472a;
+}
+
+.modern-login .form-check-label {
+  color: #64748b;
+}
+
+.modern-login .btn-primary {
+  background: linear-gradient(135deg, #1a472a, #2d5a3e);
+  color: white;
+}
+
+.modern-login .btn-primary:hover {
+  background: linear-gradient(135deg, #2d5a3e, #1a472a);
+  box-shadow: 0 4px 12px rgba(26, 71, 42, 0.4);
+}
+
+.modern-login .btn-outline {
+  border: 2px solid #1a472a;
+  color: #1a472a;
+  background: transparent;
+}
+
+.modern-login .btn-outline:hover {
+  background: linear-gradient(135deg, #1a472a, #2d5a3e);
+  color: white;
+  border-color: transparent;
+}
+
+.modern-login .login-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.5rem 0;
+  color: #64748b;
+}
+.modern-login .login-divider::before,
+.modern-login .login-divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid #e2e8f0;
+}
+.modern-login .login-divider span {
+  padding: 0 0.8rem;
+  font-size: 0.85rem;
+}
+
+.modern-login .login-footer {
+  margin-top: 2rem;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+/* QR Login Modal */
+.qr-login-modal {
+  text-align: center;
+  padding: 1rem;
+}
+.qr-login-modal h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+.qr-login-modal p {
+  color: #64748b;
+  margin-bottom: 1rem;
+}
+.qr-code-wrapper {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1rem;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+.qr-code-wrapper img {
+  width: 220px;
+  height: 220px;
+  display: block;
+  border-radius: 8px;
+}
+.qr-timer {
+  font-weight: 600;
+  color: #1a472a;
+  margin-bottom: 1rem;
+}
+
+/* Approve Login Page */
+.approve-login-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #e0f2fe 100%);
+  padding: 1rem;
+}
+.approve-login-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+}
+.approve-login-header i {
+  font-size: 3rem;
+  color: #1a472a;
+  margin-bottom: 1rem;
+}
+.approve-login-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+.approve-login-header p {
+  color: #64748b;
+  margin-bottom: 1.5rem;
+}
+.device-info {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+.device-info p {
+  margin-bottom: 0.4rem;
+}
+.approve-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
