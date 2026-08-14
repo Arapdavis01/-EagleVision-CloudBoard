@@ -108,8 +108,10 @@ export async function loginPage() {
     document.getElementById('qr-login-btn').addEventListener('click', startQrLogin);
   }
 
+  // QR login state – declared in outer scope for proper cleanup
   let qrModal = null;
   let pollInterval = null;
+  let timerInterval = null;
 
   async function startQrLogin() {
     try {
@@ -132,13 +134,15 @@ export async function loginPage() {
 
       qrModal = showModal(modalContent);
 
+      // Add cancel handler
       document.getElementById('cancel-qr-btn').addEventListener('click', () => {
         cleanupQrLogin();
       });
 
+      // Timer countdown
       let secondsLeft = 120;
       const timerEl = document.getElementById('qr-timer');
-      const timerInterval = setInterval(() => {
+      timerInterval = setInterval(() => {
         secondsLeft -= 1;
         if (secondsLeft <= 0) {
           clearInterval(timerInterval);
@@ -152,6 +156,7 @@ export async function loginPage() {
         timerEl.textContent = `Expires in ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
       }, 1000);
 
+      // Poll for approval
       pollInterval = setInterval(async () => {
         try {
           const statusData = await authService.checkLoginSessionStatus(sessionToken);
@@ -160,17 +165,18 @@ export async function loginPage() {
             clearInterval(timerInterval);
             if (statusData.token) {
               localStorage.setItem('token', statusData.token);
-              qrModal.close();
+              closeQrModal();
               location.hash = '#dashboard';
             }
           } else if (statusData.status === 'expired') {
             clearInterval(pollInterval);
             clearInterval(timerInterval);
-            qrModal.close();
+            closeQrModal();
             errorEl.textContent = 'QR code expired. Please try again.';
           }
         } catch (err) {
           console.error('QR status check failed', err);
+          // Keep polling on transient error – no modal close
         }
       }, 2000);
     } catch (err) {
@@ -180,9 +186,22 @@ export async function loginPage() {
   }
 
   function cleanupQrLogin() {
-    if (pollInterval) clearInterval(pollInterval);
-    if (qrModal) qrModal.close();
+    // Clear all intervals
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      pollInterval = null;
+    }
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    closeQrModal();
+  }
+
+  function closeQrModal() {
+    if (qrModal && typeof qrModal.close === 'function') {
+      qrModal.close();
+    }
     qrModal = null;
-    pollInterval = null;
   }
 }
