@@ -5,6 +5,7 @@ import { financePage } from './pages/finance/finance.js';
 import { alertsPage } from './pages/alerts/alerts.js';
 import { showcasePage } from './pages/showcase/showcase.js';
 import { serviceRecordPage } from './pages/serviceRecord/serviceRecord.js';
+import { approveLoginPage } from './pages/approveLogin/approveLogin.js';
 
 const routes = {
   '#login': loginPage,
@@ -14,6 +15,7 @@ const routes = {
   '#alerts': alertsPage,
   '#showcase': showcasePage,
   '#service-record': serviceRecordPage,
+  '#approve-login': approveLoginPage,
 };
 
 export async function initRouter() {
