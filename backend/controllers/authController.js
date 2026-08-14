@@ -137,11 +137,16 @@ exports.checkLoginSessionStatus = async (req, res) => {
 
 /**
  * POST /api/auth/qr/session/:token/approve
- * Called by the authenticated phone to approve a login session.
+ * Called by the phone (no auth required) to approve a login session.
+ * Expects a PIN in the request body.
  */
 exports.approveLoginSession = async (req, res) => {
   const { token } = req.params;
-  const adminId = req.adminId;   // from auth middleware
+  const { pin } = req.body;                     // PIN sent from phone
+
+  if (!pin) {
+    return res.status(400).json({ error: 'PIN is required.' });
+  }
 
   try {
     const session = await loginSessionService.getSessionByToken(token);
@@ -159,7 +164,24 @@ exports.approveLoginSession = async (req, res) => {
       return res.status(400).json({ error: `Session already ${session.status}` });
     }
 
-    await loginSessionService.approveSession(token, adminId);
+    // Fetch the single admin account (assumes only one admin exists)
+    const { rows: adminRows } = await pool.query(
+      `SELECT id, login_pin FROM admins ORDER BY id LIMIT 1`
+    );
+
+    if (adminRows.length === 0) {
+      return res.status(500).json({ error: 'No admin account found' });
+    }
+
+    const admin = adminRows[0];
+
+    // Compare PIN (stored as plaintext; change to bcrypt if hashed later)
+    if (pin !== admin.login_pin) {
+      return res.status(401).json({ error: 'Invalid PIN' });
+    }
+
+    // Approve session with this admin's ID
+    await loginSessionService.approveSession(token, admin.id);
     res.json({ message: 'Login approved' });
   } catch (err) {
     console.error(err);
