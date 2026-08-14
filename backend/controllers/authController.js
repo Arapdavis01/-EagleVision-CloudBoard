@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const pool = require('../config/db');
 const { jwtSecret, jwtExpiresIn } = require('../config/auth');
 
@@ -25,7 +26,6 @@ exports.login = async (req, res) => {
       { expiresIn: jwtExpiresIn }
     );
 
-    // Still set the HttpOnly cookie (optional, for future same‑origin use)
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -33,13 +33,11 @@ exports.login = async (req, res) => {
       maxAge: 2 * 60 * 60 * 1000
     });
 
-    // Audit log
     await pool.query(
       'INSERT INTO admin_audit_logs (admin_id, action, details) VALUES ($1, $2, $3)',
       [admin.id, 'LOGIN', `Login at ${new Date().toISOString()}`]
     );
 
-    // 🔥 Return token in the response body
     res.json({ message: 'Login successful', email: admin.email, token });
   } catch (err) {
     console.error(err);
@@ -54,4 +52,137 @@ exports.logout = async (req, res) => {
 
 exports.checkSession = (req, res) => {
   res.json({ authenticated: true, email: req.adminEmail });
+};
+
+// ==================== QR CODE LOGIN ====================
+
+/**
+ * POST /api/auth/qr/session
+ * Creates a temporary login session for QR scanning.
+ */
+exports.generateLoginSession = async (req, res) => {
+  const sessionToken = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes
+
+  try {
+    await pool.query(
+      `INSERT INTO login_sessions (session_token, status, expires_at)
+       VALUES ($1, 'pending', $2)`,
+      [sessionToken, expiresAt]
+    );
+    res.status(201).json({
+      session_token: sessionToken,
+      expires_at: expiresAt,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create login session' });
+  }
+};
+
+/**
+ * GET /api/auth/qr/session/:token/status
+ * Polled by laptop to check if session has been approved.
+ */
+exports.checkLoginSessionStatus = async (req, res) => {
+  const { token } = req.params;
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM login_sessions WHERE session_token = $1`,
+      [token]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const session = rows[0];
+
+    // Check expiry
+    if (new Date(session.expires_at) < new Date()) {
+      return res.json({ status: 'expired' });
+    }
+
+    if (session.status === 'pending') {
+      return res.json({ status: 'pending' });
+    }
+
+    if (session.status === 'approved' && session.admin_id) {
+      // Issue JWT to laptop
+      const { rows: adminRows } = await pool.query(
+        `SELECT id, email FROM admins WHERE id = $1`,
+        [session.admin_id]
+      );
+      if (adminRows.length === 0) {
+        return res.status(404).json({ error: 'Admin not found' });
+      }
+
+      const admin = adminRows[0];
+      const jwtToken = jwt.sign(
+        { adminId: admin.id, email: admin.email },
+        jwtSecret,
+        { expiresIn: jwtExpiresIn }
+      );
+
+      // Mark session as used (single‑use)
+      await pool.query(
+        `UPDATE login_sessions SET status = 'used' WHERE session_token = $1`,
+        [token]
+      );
+
+      return res.json({
+        status: 'approved',
+        token: jwtToken,
+        email: admin.email,
+      });
+    }
+
+    // Already used or other state
+    return res.json({ status: session.status });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+/**
+ * POST /api/auth/qr/session/:token/approve
+ * Called by the authenticated phone to approve a login session.
+ */
+exports.approveLoginSession = async (req, res) => {
+  const { token } = req.params;
+  const adminId = req.adminId;   // from auth middleware
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM login_sessions WHERE session_token = $1`,
+      [token]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const session = rows[0];
+
+    if (new Date(session.expires_at) < new Date()) {
+      return res.status(400).json({ error: 'Session expired' });
+    }
+
+    if (session.status !== 'pending') {
+      return res.status(400).json({ error: `Session already ${session.status}` });
+    }
+
+    await pool.query(
+      `UPDATE login_sessions SET status = 'approved', admin_id = $1
+       WHERE session_token = $2`,
+      [adminId, token]
+    );
+
+    res.json({ message: 'Login approved' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
 };
