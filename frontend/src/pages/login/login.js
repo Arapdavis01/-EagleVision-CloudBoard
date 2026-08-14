@@ -1,26 +1,29 @@
 import { authService } from '../../services/authService.js';
+import { showModal } from '../../components/modal.js';
 
 export async function loginPage() {
   const app = document.getElementById('app');
   app.innerHTML = '';
 
   const loginHTML = `
-    <div class="login-wrapper">
+    <div class="login-wrapper modern-login">
       <div class="login-card">
         <div class="login-header">
-          <i class="fas fa-user-circle fa-3x"></i>
-          <h1>Welcome Back!</h1>
-          <p class="login-subtitle">Please sign in to continue</p>
+          <div class="login-logo">
+            <i class="fas fa-eye"></i>
+          </div>
+          <h1>EagleVision</h1>
+          <p class="login-subtitle">Sign in to your dashboard</p>
         </div>
 
         <form id="login-form">
           <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" placeholder="Enter email" required autofocus>
+            <label for="email"><i class="fas fa-envelope"></i> Email</label>
+            <input type="email" id="email" placeholder="Enter your email" required autofocus>
           </div>
           <div class="form-group password-group">
-            <label for="password">Password</label>
-            <input type="password" id="password" placeholder="Enter password" required>
+            <label for="password"><i class="fas fa-lock"></i> Password</label>
+            <input type="password" id="password" placeholder="Enter your password" required>
             <button type="button" id="toggle-password" class="toggle-password" aria-label="Show password">
               <i class="fas fa-eye" id="eye-icon"></i>
             </button>
@@ -36,14 +39,16 @@ export async function loginPage() {
           </button>
         </form>
 
-        <div class="login-links">
-          <a href="#" class="forgot-link">Forgot Password?</a>
+        <div class="login-divider">
+          <span>or</span>
         </div>
 
-        <hr>
+        <button id="qr-login-btn" class="btn btn-outline btn-block">
+          <i class="fas fa-qrcode"></i> Login with QR Code
+        </button>
 
         <div class="login-footer">
-          <p>&copy; 2026 <a href="https://advance-portfolio-nu.vercel.app/" target="_blank">Dancun.K.Koech</a></p>
+          <p>&copy; 2026 EagleVision CloudBoard</p>
         </div>
       </div>
     </div>
@@ -91,4 +96,85 @@ export async function loginPage() {
       loginText.textContent = 'Sign In';
     }
   });
+
+  // QR Login button
+  document.getElementById('qr-login-btn').addEventListener('click', startQrLogin);
+
+  let qrModal = null;
+  let pollInterval = null;
+
+  async function startQrLogin() {
+    try {
+      const session = await authService.generateLoginSession();
+      const sessionToken = session.session_token;
+      const qrData = `${window.location.origin}/#approve-login?session=${encodeURIComponent(sessionToken)}`;
+      const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrData)}`;
+
+      const modalContent = `
+        <div class="qr-login-modal">
+          <h3><i class="fas fa-qrcode"></i> Scan QR Code</h3>
+          <p>Open your phone camera and scan the code to log in automatically.</p>
+          <div class="qr-code-wrapper">
+            <img src="${qrImageUrl}" alt="QR Code Login" />
+          </div>
+          <p class="qr-timer" id="qr-timer">Expires in 02:00</p>
+          <button id="cancel-qr-btn" class="btn btn-outline btn-sm">Cancel</button>
+        </div>
+      `;
+
+      qrModal = showModal(modalContent);
+
+      document.getElementById('cancel-qr-btn').addEventListener('click', () => {
+        cleanupQrLogin();
+      });
+
+      let secondsLeft = 120;
+      const timerEl = document.getElementById('qr-timer');
+      const timerInterval = setInterval(() => {
+        secondsLeft -= 1;
+        if (secondsLeft <= 0) {
+          clearInterval(timerInterval);
+          timerEl.textContent = 'Expired';
+          cleanupQrLogin();
+          errorEl.textContent = 'QR code expired. Please try again.';
+          return;
+        }
+        const mins = Math.floor(secondsLeft / 60);
+        const secs = secondsLeft % 60;
+        timerEl.textContent = `Expires in ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      }, 1000);
+
+      pollInterval = setInterval(async () => {
+        try {
+          const statusData = await authService.checkLoginSessionStatus(sessionToken);
+          if (statusData.status === 'approved') {
+            clearInterval(pollInterval);
+            clearInterval(timerInterval);
+            if (statusData.token) {
+              localStorage.setItem('token', statusData.token);
+              qrModal.close();
+              location.hash = '#dashboard';
+            }
+          } else if (statusData.status === 'expired') {
+            clearInterval(pollInterval);
+            clearInterval(timerInterval);
+            qrModal.close();
+            errorEl.textContent = 'QR code expired. Please try again.';
+          }
+        } catch (err) {
+          console.error('QR status check failed', err);
+        }
+      }, 2000);
+    } catch (err) {
+      console.error('QR login error', err);
+      errorEl.textContent = err.message || 'Failed to start QR login.';
+    }
+  }
+
+  function cleanupQrLogin() {
+    if (pollInterval) clearInterval(pollInterval);
+    if (qrModal) qrModal.close();
+    qrModal = null;
+    pollInterval = null;
+  }
 }
