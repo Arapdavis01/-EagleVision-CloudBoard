@@ -105,13 +105,13 @@ export async function dashboardPage() {
 
   refreshDashboard();
 
-  // KPI clicks
+  // KPI clicks – pass refreshDashboard to openKpiModal for overdue reviews
   document.getElementById('kpi-container').addEventListener('click', (e) => {
     const card = e.target.closest('.clickable');
     if (!card) return;
     const type = card.dataset.kpiType;
     if (!type) return;
-    openKpiModal(type);
+    openKpiModal(type, refreshDashboard);
   });
 
   // Add Project button
@@ -173,10 +173,10 @@ export async function dashboardPage() {
 
 // ==================== Enhanced KPI Modal Openers ====================
 
-async function openKpiModal(type) {
+async function openKpiModal(type, refreshCallback = null) {
   switch (type) {
     case 'projects': await showProjectsSummaryModal(); break;
-    case 'overdue': await showOverdueSummaryModal(); break;
+    case 'overdue': await showOverdueSummaryModal(refreshCallback); break;
     case 'clients': await showClientsSummaryModal(); break;
     case 'revenue': await showRevenueSummaryModal(); break;
     case 'domains': await showExpiringDomainsModal(); break;
@@ -263,7 +263,7 @@ function renderProjectRows(projects) {
 }
 
 // --- Overdue Reviews Modal (with nested Review & Update) ---
-async function showOverdueSummaryModal() {
+async function showOverdueSummaryModal(refreshCallback = null) {
   const overdue = await dashboardService.getOverdueReviews().catch(() => []);
   const now = new Date();
   const content = `
@@ -317,7 +317,8 @@ async function showOverdueSummaryModal() {
           await projectService.reviewAndUpdate(projectId, data);
           childModal.close();
           showToast('Review & update saved', 'success');
-          refreshDashboard();
+          // ✅ Use the passed refreshCallback instead of the out-of-scope refreshDashboard
+          if (refreshCallback) await refreshCallback();
         } catch (err) {
           showToast(err.message, 'error');
         }
